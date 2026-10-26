@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>FoFocaccia Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one sticky brand bar + scrollable tab strip, then a single working view. Olive/cream like the workbook; data in tabular numerals. */
+:root{
+  --bg:#f6f2ea; --panel:#fffdf8; --panel2:#f0ebe0; --line:#d9d1bf; --fg:#2b2a24; --muted:#6e6a5c;
+  --olive:#4a5c2a; --olive-2:#6b7f4f; --gold:#c9a84c; --red:#b3372a; --green:#1e8449; --orange:#d97b1e;
+  --sage:#c8d5a3; --inp:#fffbe6; --inpfg:#0c3fb8; --display:"Fraunces",Georgia,serif; --body:"Public Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1c16; --panel:#24261d; --panel2:#2d3024; --line:#434636; --fg:#ece7d8; --muted:#a39f8f;
+  --olive:#9bb06c; --olive-2:#7d9154; --gold:#d8b85e; --red:#e2705f; --green:#5fc08a; --orange:#eb9a4a; --sage:#3f4a2b; --inp:#2f3221; --inpfg:#9cc0ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1b1c16; --panel:#24261d; --panel2:#2d3024; --line:#434636; --fg:#ece7d8; --muted:#a39f8f;
+  --olive:#9bb06c; --olive-2:#7d9154; --gold:#d8b85e; --red:#e2705f; --green:#5fc08a; --orange:#eb9a4a; --sage:#3f4a2b; --inp:#2f3221; --inpfg:#9cc0ff; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;margin:0}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--olive);color:#fff;padding:10px 16px 0}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:22px;color:#fff}
+.brand small{opacity:.8}
+.brand .st{margin-left:auto;font-size:12px;opacity:.85}
+.brand #xlsBtn,.brand #outBtn{margin-bottom:0}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin-top:8px;scrollbar-width:thin}
+.tabs button{flex:0 0 auto;background:transparent;border:0;color:#fff;opacity:.75;padding:8px 12px;border-radius:8px 8px 0 0;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:var(--bg);color:var(--fg);opacity:1}
+.tabs button:focus-visible{outline:2px solid var(--gold)}
+main{padding-block:16px 48px;padding-inline:16px;max-width:1500px;margin:0 auto}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1 1 auto}
+.btn{background:var(--olive);color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:var(--panel2);color:var(--fg);border:1px solid var(--line)}
+.btn.danger{background:var(--red)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0;max-width:100%}
+input.in,select.in,textarea.in{background:var(--inp);color:var(--inpfg)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+th{background:var(--olive);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px;text-align:left;position:sticky;top:0;white-space:nowrap}
+td{padding:6px 8px;border-top:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+td.n,th.n{text-align:right}
+tr.tot td{background:var(--panel2);font-weight:700}
+tr.sec td{background:var(--sage);color:var(--fg);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+tr.key td{background:var(--gold);color:#2b2a24;font-weight:700}
+td input,td select{width:100%;padding:4px 6px}
+td input[type=number]{width:84px;text-align:right}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.card .v{font-family:var(--display);font-size:24px;font-weight:700;color:var(--olive);font-variant-numeric:tabular-nums}
+.card .v.small{font-size:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px;min-width:0}
+.panel h2{font-size:18px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700}
+.ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--orange)}
+.pill.ok{background:color-mix(in srgb,var(--green) 18%,transparent)} .pill.bad{background:color-mix(in srgb,var(--red) 18%,transparent)} .pill.warn{background:color-mix(in srgb,var(--orange) 18%,transparent)}
+.neg{color:var(--red)}
+.modal{position:fixed;inset:0;background:rgba(20,20,10,.5);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto;z-index:20}
+.modal .box{background:var(--panel);border-radius:12px;padding:18px;width:min(760px,100%);border:1px solid var(--line)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.form .wide{grid-column:1/-1}
+.items-edit{grid-column:1/-1;display:grid;gap:6px}
+.items-edit .ln{display:grid;grid-template-columns:1fr 80px 32px;gap:6px}
+.items-edit .ln.cust{grid-template-columns:1fr 110px 32px;background:var(--panel2);padding:6px;border-radius:6px;margin-top:-2px}
+.items-edit .ln.cust .note{align-self:center}
+.block{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.block .hd{background:var(--olive);color:#fff;padding:8px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.block .hd h3{color:#fff;font-size:16px}
+.block .bd{padding:10px 12px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;align-items:center}
+.chart{width:100%;height:auto;display:block}
+.note{font-size:12px;color:var(--muted)}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--olive);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:30}
+.x{background:none;border:0;color:var(--red);font-size:16px;cursor:pointer}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+@media (max-width:600px){.card .v{font-size:20px} main{padding-inline:16px}}
+@media (prefers-reduced-motion:no-preference){.tabs button{transition:background .15s}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel,transparent)}.seg button{border:0;background:transparent;color:var(--muted);padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}.seg button.on{background:var(--olive-2);color:#fff}.seg button+button{border-left:1px solid var(--line)}
+.hb{display:grid;gap:6px}.hb-row{display:grid;grid-template-columns:minmax(90px,38%) 1fr 70px;align-items:center;gap:8px;font-size:13px}.hb-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hb-bar{height:12px;background:color-mix(in srgb,var(--line) 60%,transparent);border-radius:6px;overflow:hidden}.hb-bar i{display:block;height:100%;border-radius:6px}.hb-v{text-align:right;font-variant-numeric:tabular-nums}.hb-v.neg{color:var(--red)}
+.alerts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}.alerts button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;color:var(--fg)}.alerts button.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}.alerts button.warn{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent)}
+table.heat td,table.heat th{padding:5px 6px;font-size:12px;text-align:center}.goalbar{height:14px;border-radius:7px;background:color-mix(in srgb,var(--line) 60%,transparent);overflow:hidden;position:relative}.goalbar i{display:block;height:100%;background:var(--olive-2)}.goalbar s{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);text-decoration:none}
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}.mini .card{padding:8px 10px}.mini .card .v{font-size:18px}
+</style>
+
+</head>
+<body>
+<div class="top">
+  <div class="brand"><h1>🫓 FoFocaccia</h1><small>business tracker &amp; accounts</small><span class="st" id="status">loading…</span><button class="btn sec" id="xlsBtn" style="padding:4px 10px;font-size:12px" title="Download everything as an Excel workbook">⬇ Excel</button><button class="btn sec" id="outBtn" style="padding:4px 10px;font-size:12px" hidden>Sign out</button></div>
+  <div class="tabs" id="tabs"></div>
+</div>
+<main id="view"><div class="empty">Loading your data…</div></main>
+<div id="modalHost"></div>
+
+<script src="assets/vendor/xlsx.full.min.js"></script>
+<script src="assets/vendor/qrcode.min.js"></script>
+<script src="assets/vendor/jspdf.umd.min.js"></script>
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="store.js"></script>
+<div id="qrhost" style="position:absolute;left:-9999px;top:0"></div>
+<script>
+(() => {
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt0 = n => (n==null||n===""||isNaN(n)) ? "–" : (n<0 ? "("+Math.round(-n).toLocaleString("en")+")" : (Math.round(n)===0?"–":Math.round(n).toLocaleString("en")));
+const fmt2 = n => (n==null||isNaN(n)) ? "–" : (n<0 ? "("+(-n).toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2})+")" : n.toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2}));
+const pct = n => (n==null||isNaN(n)||!isFinite(n)) ? "–" : (n*100).toFixed(1)+"%";
+const int = n => (!n) ? "–" : Math.round(n).toLocaleString("en");
+const N = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+const today = () => new Date().toISOString().slice(0,10);
+const ym = d => (d||"").slice(0,7);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+// ---------------- state ----------------
+const S = { settings:null, ingredients:[], recipes:[], boxes:[], menu:[], suppliers:[], goals:{}, orders:[], expenses:[], wastage:[], customers:[], filings:[], tab:"dash", ready:false, canWrite:true, dbOn:false };
+let db = null, user = null;
+const DEFAULT_SETTINGS = {business:"FoFocaccia",fyStart:"2026-01-01",vatRegistered:true,vatRate:0.15,pricesInclVat:false,targetMargin:0.5,sellingDays:26,deliveryFee:40,deliveryCost:40,
+  accounts:[{name:"Bank account",opening:0},{name:"Cash on hand",opening:0},{name:"Payment links / card",opening:0},{name:"Other wallet",opening:0}],
+  categories:[{name:"Ingredients",type:"Ingredients",vat:"Standard"},{name:"Packaging & presentation",type:"Packaging",vat:"Standard"},{name:"Other expenses",type:"Operating",vat:"Standard"},
+    {name:"Equipment (kept for years)",type:"Equipment",vat:"Standard"},{name:"Owner capital in",type:"Capital",vat:"Out of scope"},{name:"Owner drawings",type:"Drawings",vat:"Out of scope"},
+    {name:"Loan received / repaid",type:"Loan",vat:"Out of scope"},{name:"VAT paid to / refunded by ZATCA",type:"VAT",vat:"Out of scope"},{name:"Zakat paid to ZATCA",type:"Drawings",vat:"Out of scope"},{name:"Transfer between own accounts",type:"Transfer",vat:"Out of scope"}]};
+const OWNER = "Owner – personal funds";
+// ---------------- receipts ----------------
+const PUBLIC_URL = location.origin + location.pathname;
+const RDEF = {business:"FOFOCACCIA", tagline:"Sourdough Focaccia", employee:"Owner", pos:"FoFocaccia", handle:"@FoFocaccia", phone:"", address:"", vatNo:"", footer:"", prefix:"1", nextNo:20, publicUrl:PUBLIC_URL};
+const rcfg = () => ({...RDEF, ...((S.settings||{}).receipt||{})});
+const LOGO = "data:image/png;base64,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";
+const logoImg = new Image(); let logoReady = false; logoImg.onload = () => { logoReady = true; const cv = document.querySelector("#rc"); if (cv && cv._R) drawReceipt(cv, cv._R); }; logoImg.src = LOGO;
+const f2 = n => (Math.round(n*100)/100).toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2});
+const PAY_LABEL = {"Bank account":"Bank transfer","Cash on hand":"Cash","Payment links / card":"Card / payment link"};
+function receiptOf(o){ // o = calculated order from C.orders
+  const c = rcfg(); const rate = C.rate;
+  return {no:o.receiptNo||null, date:o.date, customer:o.customer||"", phone:o.phone||"", payment: PAY_LABEL[o.account]||o.account||"Paid", delivery:o.delivery!==false, fee:o.fee, disc:o.discN, notes:o.notes||"", payLink:o.payLink||"",
+    lines:o.items.map(i=>({name:i.label, qty:N(i.qty)||1, unit: i.custom ? N(i.price)/C.DIV : ((C.menu[i.item]||{}).priceEx||0)})), net:o.net-o.feeN, vat:o.vat, total:o.total, rate, cfg:c}; }
+function qrDataUrl(text, size){ const host = $("#qrhost"); host.innerHTML = ""; if (!window.QRCode) return null; try { new window.QRCode(host, {text, width:size, height:size, correctLevel: window.QRCode.CorrectLevel.M}); const cv = host.querySelector("canvas"); return cv ? cv.toDataURL("image/png") : null; } catch(e){ return null; } }
+function tlv(tag, str){ const b = new TextEncoder().encode(str); return [tag, b.length, ...b]; }
+function zatcaQr(c, R){ const ts = new Date(R.date||Date.now()).toISOString(); const bytes = [...tlv(1,c.business), ...tlv(2,c.vatNo||""), ...tlv(3,ts), ...tlv(4,R.total.toFixed(2)), ...tlv(5,R.vat.toFixed(2))]; let t=""; bytes.forEach(b=>t+=String.fromCharCode(b)); return btoa(t); }
+let qrCache = {};
+function drawReceipt(canvas, R){ canvas._R = R; const c = R.cfg; const ctx = canvas.getContext("2d"); const W = 640, pad = 28, FONT = '"Public Sans",system-ui,-apple-system,Arial,sans-serif';
+  canvas.width = W; canvas.height = 1100 + R.lines.length*74 + (c.vatNo? 260:0) + (R.notes? 40:0);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,canvas.height); ctx.textBaseline = "alphabetic"; let y = 40;
+  const T = (txt, x, size, o={}) => { ctx.font = `${o.w||400} ${size}px ${FONT}`; ctx.textAlign = o.align||"left"; ctx.fillStyle = o.col||"#222"; ctx.fillText(txt, x, y); };
+  const rule = () => { ctx.strokeStyle = "#cfcfcf"; ctx.lineWidth = 1.5; ctx.setLineDash([3,5]); ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); ctx.setLineDash([]); };
+  const pair = (l, v, o={}) => { T(l, pad, o.size||17, {w:o.w||400, col:o.col}); T(v, W-pad, o.size||17, {align:"right", w:o.w||400, col:o.col}); };
+  const fit = (txt, maxW, font) => { ctx.font = font; if (ctx.measureText(txt).width <= maxW) return txt; let t = txt; while (t.length>1 && ctx.measureText(t+"…").width > maxW) t = t.slice(0,-1); return t+"…"; };
+  if (logoReady){ const lw = 300, lhh = lw*logoImg.height/logoImg.width; ctx.drawImage(logoImg, (W-lw)/2, y, lw, lhh); y += lhh + 36; } else y += 150;
+  T(c.business, W/2, 19, {w:700, align:"center"}); y += 28; if (c.tagline){ T(c.tagline, W/2, 16, {align:"center", col:"#777"}); y += 22; }
+  const contact = [c.phone, c.address].filter(Boolean).join("  ·  "); if (contact){ T(contact, W/2, 14, {align:"center", col:"#777"}); y += 22; }
+  if (c.vatNo){ T("VAT No. "+c.vatNo, W/2, 14, {align:"center", col:"#777"}); y += 22; }
+  y += 8; rule(); y += 62; T(f2(R.total)+" SAR", W/2, 46, {w:700, align:"center"}); y += 30; T("Total", W/2, 16, {align:"center", col:"#777"}); y += 26; rule();
+  y += 34; T("Receipt #: "+(R.no||"—"), pad, 17); y += 27; T("Date: "+(R.date||""), pad, 17);
+  if (R.customer){ y += 27; T("Customer: "+R.customer+(R.phone? " · "+R.phone:""), pad, 17); }
+  if (c.employee){ y += 27; T("Employee: "+c.employee, pad, 17); } if (c.pos){ y += 27; T("POS: "+c.pos, pad, 17); }
+  y += 22; rule(); y += 34; T(R.delivery ? "Delivery" : "Pickup", pad, 17, {w:700}); y += 22; rule();
+  R.lines.forEach(l => { y += 34; pair(fit(l.name, W-2*pad-150, `400 17px ${FONT}`), f2(l.qty*l.unit)+" SAR"); y += 24; T(`${l.qty} × ${f2(l.unit)} SAR`, pad, 14, {col:"#888"}); y += 8; });
+  if (R.disc){ y += 34; pair("Discount", "-"+f2(R.disc)+" SAR"); y += 8; }
+  y += 24; rule(); y += 34; pair("Total before VAT", f2(R.net)+" SAR", {w:700}); y += 27; pair(`VAT, ${Math.round(R.rate*100)}%`, f2(R.vat)+" SAR");
+  if (R.fee){ y += 27; pair("Delivery (no VAT)", f2(R.fee)+" SAR"); }
+  y += 22; rule(); y += 34; pair("Total", f2(R.total)+" SAR", {w:700}); y += 22; rule(); y += 34; pair(R.payment||"Paid", f2(R.total)+" SAR");
+  if (R.notes){ y += 30; T(fit("Note: "+R.notes, W-2*pad, `400 15px ${FONT}`), pad, 15, {col:"#777"}); }
+  y += 22; rule();
+  const finish = () => { y += 38; T(c.handle||"", W/2, 16, {align:"center", col:"#777"}); if (c.footer){ y += 26; T(c.footer, W/2, 14, {align:"center", col:"#777"}); } y += 40; const img = ctx.getImageData(0,0,W,Math.min(canvas.height,y)); canvas.height = Math.min(canvas.height,y); ctx.putImageData(img,0,0); };
+  if (c.vatNo){ const key = zatcaQr(c, R); if (!qrCache[key]) qrCache[key] = qrDataUrl(key, 180); const qs = 150; if (qrCache[key]){ const im = new Image(); im.onload = () => { y += 24; ctx.drawImage(im, (W-qs)/2, y, qs, qs); y += qs + 18; T("ZATCA e-invoice QR", W/2, 12, {align:"center", col:"#888"}); y += 4; rule(); finish(); }; im.src = qrCache[key]; return; } }
+  finish(); }
+const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64u = str => { const b = atob(str.replace(/-/g,"+").replace(/_/g,"/") + "===".slice((str.length+3)%4)); return Uint8Array.from(b, ch=>ch.charCodeAt(0)); };
+async function packReceipt(R){ const c = R.cfg; const o = {n:R.no, d:R.date, c:R.customer, p:R.phone, y:R.payment, f:R.delivery?1:0, e:R.fee, x:R.disc, t:R.notes, l:R.payLink, r:R.rate, i:R.lines.map(l=>[l.name,l.qty,l.unit]), b:{business:c.business,tagline:c.tagline,employee:c.employee,pos:c.pos,handle:c.handle,phone:c.phone,address:c.address,vatNo:c.vatNo,footer:c.footer}};
+  const json = new TextEncoder().encode(JSON.stringify(o));
+  if (window.CompressionStream){ try { const cs = new CompressionStream("deflate-raw"); const w = cs.writable.getWriter(); w.write(json); w.close(); return "z"+b64u(new Uint8Array(await new Response(cs.readable).arrayBuffer())); } catch(e){} }
+  return "j"+b64u(json); }
+async function unpackReceipt(tok){ let bytes = unb64u(tok.slice(1)); if (tok[0]==="z"){ const ds = new DecompressionStream("deflate-raw"); const w = ds.writable.getWriter(); w.write(bytes); w.close(); bytes = new Uint8Array(await new Response(ds.readable).arrayBuffer()); }
+  const o = JSON.parse(new TextDecoder().decode(bytes)); const lines = o.i.map(([n,q,u])=>({name:n,qty:q,unit:u})); const net = lines.reduce((a,l)=>a+l.qty*l.unit,0)-(o.x||0); const vat = net*o.r;
+  return {no:o.n, date:o.d, customer:o.c, phone:o.p, payment:o.y, delivery:!!o.f, fee:o.e||0, disc:o.x||0, notes:o.t, payLink:o.l, lines, net, vat, total:net+vat+(o.e||0), rate:o.r, cfg:{...RDEF, ...o.b}}; }
+function customerToken(){ const m = (location.hash||"").match(/^#v~([A-Za-z0-9_-]+)$/); return m ? m[1] : null; }
+async function customerLink(R){ return (rcfg().publicUrl||PUBLIC_URL).replace(/#.*$/,"") + "#v~" + await packReceipt(R); }
+function receiptText(R){ return [`${R.cfg.business} — Receipt #${R.no||""}`, `Date: ${R.date}`, R.customer? `Customer: ${R.customer}`:"", R.delivery?"Delivery":"Pickup", "", ...R.lines.map(l=>`${l.name}  ${f2(l.qty*l.unit)} SAR  (${l.qty} × ${f2(l.unit)})`), R.disc? `Discount  -${f2(R.disc)} SAR`:"", "", `Total before VAT: ${f2(R.net)} SAR`, `VAT ${Math.round(R.rate*100)}%: ${f2(R.vat)} SAR`, R.fee? `Delivery (no VAT): ${f2(R.fee)} SAR`:"", `Total: ${f2(R.total)} SAR`, `${R.payment}: ${f2(R.total)} SAR`, "", R.cfg.handle||""].join("\n"); }
+async function copyText(txt, msg){ try{ await navigator.clipboard.writeText(txt); toast(msg); }catch(e){ const ta=document.createElement("textarea"); ta.value=txt; ta.style.cssText="width:100%;height:120px;margin-top:8px"; ($("#rcBox")||document.body).appendChild(ta); ta.select(); toast("Select and copy the text"); setTimeout(()=>ta.remove(),15000); } }
+function downloadBlob(data, filename){ const url = URL.createObjectURL(data); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); }
+async function saveCanvas(cv, kind, name){ try { let data, filename;
+    if (kind==="png"){ data = await new Promise(res=>cv.toBlob(res,"image/png")); filename = name+".png"; }
+    else { const J = window.jspdf?.jsPDF; if (!J){ toast("PDF library didn't load", true); return; } const wmm=80, hmm=cv.height/cv.width*wmm; const pdf = new J({unit:"mm",format:[wmm,hmm]}); pdf.addImage(cv.toDataURL("image/png"),"PNG",0,0,wmm,hmm); data = pdf.output("blob"); filename = name+".pdf"; }
+    downloadBlob(data, filename); toast("Saved "+filename);
+  } catch(e){ if (e && e.code==="declined") return; toast("Could not save: "+(e.message||e.code||e), true); } }
+function nextReceiptNo(){ const c = rcfg(); const used = S.orders.map(o=>o.receiptNo).filter(Boolean); let n = N(c.nextNo)||1, no; do { no = `${c.prefix||"1"}-${String(n).padStart(4,"0")}`; n++; } while (used.includes(no)); return {no, next:n}; }
+function openReceipt(id){ const o = C.orders.find(x=>x.id===id); if(!o) return; const R = receiptOf(o);
+  $("#modalHost").innerHTML = `<div class="modal"><div class="box" id="rcBox" style="width:min(520px,100%)"><h2 style="margin-bottom:8px">Receipt ${R.no? esc(R.no) : "<span class='note'>(not numbered yet)</span>"}</h2>
+    <canvas id="rc" style="width:100%;height:auto;display:block;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.18);background:#fff"></canvas>
+    <label class="note" style="display:block;margin-top:10px">Payment link for this customer (optional)<input class="in" id="rcPay" type="url" style="width:100%;margin-top:3px" placeholder="https://…" value="${esc(o.payLink||"")}"></label>
+    <div class="row" style="margin-top:10px">${!R.no && canW()? `<button class="btn" id="rcNum">Assign number</button>`:""}${canW()? `<button class="btn sec" id="rcSavePay">Save link</button>`:""}<button class="btn sec" id="rcPng" ${R.no?"":"disabled"}>⬇ PNG</button><button class="btn sec" id="rcPdf" ${R.no?"":"disabled"}>⬇ PDF</button><button class="btn sec" id="rcLink" ${R.no?"":"disabled"}>🔗 Customer link</button><button class="btn sec" id="rcMsg" ${R.no?"":"disabled"}>WhatsApp message</button><span style="flex:1"></span><button class="btn sec" id="cancel">Close</button></div>
+    ${R.no?"":`<p class="note">Assign a number first; downloads and links unlock after that.</p>`}</div></div>`;
+  $("#cancel").onclick = closeModal; $("#modalHost .modal").addEventListener("click", e=>{ if(e.target.classList.contains("modal")) closeModal(); });
+  drawReceipt($("#rc"), R);
+  $("#rcNum")?.addEventListener("click", async ()=>{ const {no, next} = nextReceiptNo(); S.settings.receipt = {...rcfg(), nextNo: next}; saveConfig("settings"); const raw = S.orders.find(x=>x.id===id); raw.receiptNo = no; raw.payLink = $("#rcPay").value.trim(); await saveRow("orders", raw); openReceipt(id); });
+  $("#rcSavePay")?.addEventListener("click", async ()=>{ const raw = S.orders.find(x=>x.id===id); raw.payLink = $("#rcPay").value.trim(); await saveRow("orders", raw); openReceipt(id); toast("Payment link saved"); });
+  const name = `${R.no||"receipt"}${R.customer? "_"+R.customer.replace(/[^\w\u0600-\u06FF]+/g,"-"):""}`;
+  $("#rcPng").onclick = () => saveCanvas($("#rc"), "png", name); $("#rcPdf").onclick = () => saveCanvas($("#rc"), "pdf", name);
+  $("#rcLink").onclick = async () => { R.payLink = $("#rcPay").value.trim(); copyText(await customerLink(R), "Customer link copied — paste it into WhatsApp"); };
+  $("#rcMsg").onclick = async () => { R.payLink = $("#rcPay").value.trim(); const link = await customerLink(R); copyText([`Hi${R.customer? " "+R.customer:""}, thank you for your FoFocaccia order 🫓`, `Receipt ${R.no}: ${f2(R.total)} SAR`, `View your receipt: ${link}`, R.payLink? `Pay here: ${R.payLink}`:"", "", receiptText(R)].join("\n"), "Message copied — paste it into WhatsApp"); }; }
+async function renderCustomer(tok){ let R; try { R = await unpackReceipt(tok); } catch(e){ $("#view").innerHTML = `<div class="panel" style="max-width:480px;margin:40px auto;text-align:center"><h2>This receipt link isn't valid</h2><p class="note">Ask FoFocaccia to send it again.</p></div>`; return; }
+  const top = $(".top"); top.innerHTML = `<div class="brand"><h1>🫓 ${esc(R.cfg.business)}</h1><small>${esc(R.cfg.tagline||"")}</small></div>`;
+  $("#view").innerHTML = `<div style="max-width:460px;margin:0 auto"><p class="note" style="text-align:center;margin:0 0 10px">Receipt ${esc(R.no||"")}${R.customer?" · "+esc(R.customer):""}</p><canvas id="rc" style="width:100%;height:auto;display:block;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.18);background:#fff"></canvas>
+    ${R.payLink? `<a class="btn" style="display:block;text-align:center;text-decoration:none;font-size:18px;padding:14px;margin-top:14px" href="${esc(R.payLink)}" target="_blank" rel="noopener">Pay ${f2(R.total)} SAR · ادفع الآن</a><p class="note" style="text-align:center">Opens ${esc(R.cfg.business)}'s secure payment page.</p>` : `<p class="note" style="text-align:center">Total ${f2(R.total)} SAR · ${esc(R.payment||"")}</p>`}
+    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn sec" id="cSave">Save receipt image</button><button class="btn sec" id="cPdf">PDF</button></div><p class="note" style="text-align:center;margin-top:14px">${esc(R.cfg.handle||"")}</p></div>`;
+  drawReceipt($("#rc"), R); const name = `${R.cfg.business}_${R.no||""}`.replace(/\s+/g,"_");
+  $("#cSave").onclick = () => saveCanvas($("#rc"), "png", name); $("#cPdf").onclick = () => saveCanvas($("#rc"), "pdf", name); }
+const SEED = {"settings": {"business": "FoFocaccia", "fyStart": "2026-01-01", "vatRegistered": true, "vatRate": 0.15, "pricesInclVat": false, "targetMargin": 0.5, "sellingDays": 26, "accounts": [{"name": "Bank account", "opening": 0}, {"name": "Cash on hand", "opening": 0}, {"name": "Payment links / card", "opening": 0}, {"name": "Other wallet", "opening": 0}], "categories": [{"name": "Ingredients", "type": "Ingredients", "vat": "Standard"}, {"name": "Packaging & presentation", "type": "Packaging", "vat": "Standard"}, {"name": "WhatsApp / Marketing", "type": "Operating", "vat": "Standard"}, {"name": "Photography & creative", "type": "Operating", "vat": "Standard"}, {"name": "Utilities (gas, electricity, water)", "type": "Operating", "vat": "Standard"}, {"name": "Delivery (bills not on orders)", "type": "Operating", "vat": "Standard"}, {"name": "Equipment maintenance & small tools", "type": "Operating", "vat": "Standard"}, {"name": "Cleaning & hygiene", "type": "Operating", "vat": "Standard"}, {"name": "Software & subscriptions", "type": "Operating", "vat": "Standard"}, {"name": "Licences & government fees", "type": "Operating", "vat": "Out of scope"}, {"name": "Bank & payment fees", "type": "Operating", "vat": "Standard"}, {"name": "Wages & kitchen help", "type": "Operating", "vat": "Out of scope"}, {"name": "Professional fees", "type": "Operating", "vat": "Standard"}, {"name": "Other expenses", "type": "Operating", "vat": "Standard"}, {"name": "Equipment (oven, mixer — kept for years)", "type": "Equipment", "vat": "Standard"}, {"name": "Owner capital in", "type": "Capital", "vat": "Out of scope"}, {"name": "Owner drawings", "type": "Drawings", "vat": "Out of scope"}, {"name": "Loan received / repaid", "type": "Loan", "vat": "Out of scope"}, {"name": "VAT paid to / refunded by ZATCA", "type": "VAT", "vat": "Out of scope"}, {"name": "Transfer between own accounts", "type": "Transfer", "vat": "Out of scope"}]}, "ingredients": {"items": [{"name": "Bread Flour (Unrefined)", "cat": "Base Dough", "unit": "kg", "pack": 1, "uom": "kg", "price": 12, "supplier": "Sitaf"}, {"name": "Sourdough Starter", "cat": "Base Dough", "unit": "kg", "pack": 1, "uom": "kg", "price": 16, "supplier": "Homemade"}, {"name": "Extra Virgin Olive Oil", "cat": "Oils & Fats", "unit": "litre", "pack": 1, "uom": "litre", "price": 45.54, "supplier": "Sitaf"}, {"name": "Sea Salt", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 17, "supplier": "Supermarket"}, {"name": "Water", "cat": "Base Dough", "unit": "litre", "pack": 1, "uom": "litre", "price": 0.5, "supplier": "Utility"}, {"name": "Yeast", "cat": "Base Dough", "unit": "kg", "pack": 1, "uom": "kg", "price": 50, "supplier": "Baking Supply"}, {"name": "Himalayan Pink Salt", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 17, "supplier": "Specialty Store"}, {"name": "Cherry Tomatoes", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 47.5, "supplier": "Fresh Market"}, {"name": "Pesto (Basil)", "cat": "Sauces & Spreads", "unit": "kg", "pack": 1, "uom": "kg", "price": 69, "supplier": "Sitaf"}, {"name": "Kalamata Olives Quality B", "cat": "Toppings", "unit": "kg", "pack": 1, "uom": "kg", "price": 66, "supplier": "Import"}, {"name": "Sun Dried Tomatoes", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 177, "supplier": "Import/Local"}, {"name": "Za'taar Spice Mix", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 40, "supplier": "Spice Market"}, {"name": "Parmigiano Reggiano", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 180, "supplier": "Import"}, {"name": "Fresh Herbs (Mixed)", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 25, "supplier": "Fresh Market"}, {"name": "Jalapeno", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 60, "supplier": ""}, {"name": "Cheddar Cheese", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 75, "supplier": ""}, {"name": "Dates Sukari", "cat": "Fruits", "unit": "kg", "pack": 1, "uom": "kg", "price": 25, "supplier": ""}, {"name": "Almonds", "cat": "Toppings", "unit": "kg", "pack": 1, "uom": "kg", "price": 142, "supplier": ""}, {"name": "Frozen Raspberry", "cat": "Fruits", "unit": "kg", "pack": 1, "uom": "kg", "price": 120, "supplier": ""}, {"name": "Frozen BlackBerry", "cat": "Fruits", "unit": "kg", "pack": 1, "uom": "kg", "price": 100, "supplier": ""}, {"name": "Tomatoes (for Marinara)", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 18, "supplier": "Sitaf/Canned"}, {"name": "Garlic", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 15, "supplier": "Fresh Market"}, {"name": "Onions", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 7, "supplier": "Fresh Market"}, {"name": "Feta Cheese", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 36, "supplier": "Dairy Supplier"}, {"name": "Cream Cheese", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 80, "supplier": "Dairy Supplier"}, {"name": "Balsamic Vinegar", "cat": "Sauces & Spreads", "unit": "litre", "pack": 1, "uom": "litre", "price": 25, "supplier": "Import"}, {"name": "Fresh Basil", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 30, "supplier": "Fresh Market"}, {"name": "Labnah", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 36, "supplier": ""}, {"name": "Mint", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 5, "supplier": ""}, {"name": "Zerkesh", "cat": "Toppings", "unit": "kg", "pack": 1, "uom": "kg", "price": 133, "supplier": ""}, {"name": "Date Syrup", "cat": "Sweeteners", "unit": "kg", "pack": 1, "uom": "kg", "price": 40, "supplier": ""}, {"name": "Red Pepper Powder", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 70, "supplier": ""}, {"name": "Dried Coriander", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 30, "supplier": ""}, {"name": "ACV (Apple Cider Vinegar)", "cat": "Sauces & Spreads", "unit": "litre", "pack": 1, "uom": "litre", "price": 80, "supplier": ""}, {"name": "Rosemary", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 100, "supplier": ""}, {"name": "Hot Olive Oil", "cat": "Oils & Fats", "unit": "kg", "pack": 1, "uom": "kg", "price": 40.5, "supplier": ""}, {"name": "Tahini", "cat": "Sauces & Spreads", "unit": "kg", "pack": 1, "uom": "kg", "price": 50, "supplier": ""}, {"name": "Black Olives", "cat": "Toppings", "unit": "kg", "pack": 1, "uom": "kg", "price": 40, "supplier": ""}, {"name": "Greek Yogurt", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 44, "supplier": ""}, {"name": "Honey", "cat": "Sweeteners", "unit": "kg", "pack": 1, "uom": "kg", "price": 90, "supplier": ""}, {"name": "Red Pepper Paste", "cat": "Sauces & Spreads", "unit": "kg", "pack": 1, "uom": "kg", "price": 70, "supplier": ""}, {"name": "Oregano", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 50, "supplier": ""}, {"name": "Brie Cheese", "cat": "Cheese", "unit": "kg", "pack": 1, "uom": "kg", "price": 200, "supplier": ""}, {"name": "Powdered Sugar", "cat": "Sweeteners", "unit": "kg", "pack": 1, "uom": "kg", "price": 50, "supplier": ""}, {"name": "Cinnamon", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 133, "supplier": ""}, {"name": "Vanilla Glaze", "cat": "Sweeteners", "unit": "kg", "pack": 1, "uom": "kg", "price": 40, "supplier": ""}, {"name": "Black Pepper", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 45, "supplier": ""}, {"name": "Ginger", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 75, "supplier": ""}, {"name": "Italian Seasonings", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 50, "supplier": ""}, {"name": "Kalamata Olives (Drained)", "cat": "Toppings", "unit": "kg", "pack": 1, "uom": "kg", "price": 400, "supplier": "Import"}, {"name": "Cardamom (Hail)", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 200, "supplier": ""}, {"name": "Saffron (Zafran)", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 10000, "supplier": ""}, {"name": "Red Pepper", "cat": "Vegetables", "unit": "kg", "pack": 1, "uom": "kg", "price": 68, "supplier": ""}, {"name": "Cilantro", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 15, "supplier": ""}, {"name": "Brown Sugar", "cat": "Sweeteners", "unit": "kg", "pack": 1, "uom": "kg", "price": 20, "supplier": ""}, {"name": "Dried Mint", "cat": "Herbs & Spices", "unit": "kg", "pack": 1, "uom": "kg", "price": 200, "supplier": ""}]}, "recipes": {"items": [{"name": "Himalayan Pink Salt & EVOO", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.05, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.062, "note": "incl. 15g top drizzle"}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": "base dough"}, {"ing": "Himalayan Pink Salt", "qty": 0.15, "note": "topping"}]}, {"name": "Cherry Tomatoes & Pesto", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.005, "note": "check — other loaves use 0.3"}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Cherry Tomatoes", "qty": 0.1, "note": ""}, {"ing": "Pesto (Basil)", "qty": 0.05, "note": ""}]}, {"name": "Kalamata Olives & SD Tomatoes", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Kalamata Olives Quality B", "qty": 0.1, "note": ""}, {"ing": "Sun Dried Tomatoes", "qty": 0.04, "note": ""}]}, {"name": "Za'taar & EVOO", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Za'taar Spice Mix", "qty": 0.08, "note": ""}]}, {"name": "Parmigiano Reggiano", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Parmigiano Reggiano", "qty": 0.08, "note": ""}, {"ing": "Fresh Herbs (Mixed)", "qty": 0.02, "note": ""}]}, {"name": "Jalapeno & Cheddar", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Jalapeno", "qty": 0.03, "note": ""}, {"ing": "Cheddar Cheese", "qty": 0.1, "note": ""}, {"ing": "Parmigiano Reggiano", "qty": 0.03, "note": "Parmesan finish"}, {"ing": "Fresh Herbs (Mixed)", "qty": 0.0001, "note": ""}]}, {"name": "Cinnamon & Vanilla Glaze", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Cinnamon", "qty": 0.06, "note": ""}, {"ing": "Zerkesh", "qty": 0.06, "note": ""}, {"ing": "Vanilla Glaze", "qty": 0.125, "note": ""}, {"ing": "Mint", "qty": 0.05, "note": ""}]}, {"name": "Italian Herbs & EVOO", "portions": 1, "packaging": 4, "lines": [{"ing": "Bread Flour (Unrefined)", "qty": 0.5, "note": ""}, {"ing": "Sourdough Starter", "qty": 0.1, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.06, "note": ""}, {"ing": "Yeast", "qty": 0.005, "note": ""}, {"ing": "Water", "qty": 0.3, "note": ""}, {"ing": "Sea Salt", "qty": 0.015, "note": ""}, {"ing": "Italian Seasonings", "qty": 0.02, "note": ""}, {"ing": "Rosemary", "qty": 0.01, "note": ""}]}, {"name": "MaMa's Marinara", "portions": 10, "packaging": 1, "lines": [{"ing": "Tomatoes (for Marinara)", "qty": 2.5, "note": "whole batch"}, {"ing": "Garlic", "qty": 0.01, "note": ""}, {"ing": "Onions", "qty": 0.05, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.02, "note": ""}, {"ing": "Fresh Basil", "qty": 0.005, "note": ""}, {"ing": "Red Pepper Paste", "qty": 0.05, "note": ""}, {"ing": "Red Pepper Powder", "qty": 0.05, "note": ""}, {"ing": "Dried Coriander", "qty": 0.02, "note": ""}, {"ing": "ACV (Apple Cider Vinegar)", "qty": 0.1, "note": ""}, {"ing": "Sea Salt", "qty": 0.022, "note": ""}, {"ing": "Ginger", "qty": 0.02, "note": ""}, {"ing": "Oregano", "qty": 0.015, "note": ""}]}, {"name": "Whipped Feta Cheese", "portions": 4, "packaging": 1.3, "lines": [{"ing": "Feta Cheese", "qty": 0.125, "note": "4-portion batch"}, {"ing": "Cream Cheese", "qty": 0.05, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.01, "note": ""}, {"ing": "Sun Dried Tomatoes", "qty": 0.01, "note": ""}, {"ing": "Black Olives", "qty": 0.0075, "note": ""}, {"ing": "Hot Olive Oil", "qty": 0.0075, "note": ""}, {"ing": "Greek Yogurt", "qty": 0.02, "note": ""}, {"ing": "Fresh Herbs (Mixed)", "qty": 0.001, "note": ""}]}, {"name": "EVOO with Balsamic Vinegar", "portions": 1, "packaging": 1, "lines": [{"ing": "Extra Virgin Olive Oil", "qty": 0.04, "note": ""}, {"ing": "Balsamic Vinegar", "qty": 0.02, "note": ""}, {"ing": "Sea Salt", "qty": 0.002, "note": ""}, {"ing": "Black Pepper", "qty": 0.001, "note": ""}]}, {"name": "Sweet Labnah", "portions": 1, "packaging": 1, "lines": [{"ing": "Labnah", "qty": 1.0, "note": "1 kg batch — set portions per batch"}, {"ing": "Zerkesh", "qty": 0.025, "note": ""}, {"ing": "Date Syrup", "qty": 0.06, "note": ""}, {"ing": "Mint", "qty": 0.02, "note": ""}]}, {"name": "Caprese Salad", "portions": 1, "packaging": 2, "lines": [{"ing": "Cherry Tomatoes", "qty": 0.1, "note": ""}, {"ing": "Feta Cheese", "qty": 0.08, "note": ""}, {"ing": "Fresh Basil", "qty": 0.01, "note": ""}, {"ing": "Extra Virgin Olive Oil", "qty": 0.02, "note": ""}, {"ing": "Balsamic Vinegar", "qty": 0.01, "note": ""}, {"ing": "Sea Salt", "qty": 0.002, "note": ""}, {"ing": "Black Pepper", "qty": 0.001, "note": ""}]}, {"name": "Hot Honey", "portions": 1, "packaging": 1, "lines": [{"ing": "Honey", "qty": 0.048, "note": ""}, {"ing": "Red Pepper Paste", "qty": 0.024, "note": ""}, {"ing": "ACV (Apple Cider Vinegar)", "qty": 0.007, "note": ""}, {"ing": "Black Pepper", "qty": 0.005, "note": ""}]}, {"name": "Maple Whipped Butter", "portions": 1, "packaging": 1, "lines": [{"ing": "Honey", "qty": 0.05, "note": "sub maple syrup"}, {"ing": "Cream Cheese", "qty": 0.08, "note": ""}, {"ing": "Powdered Sugar", "qty": 0.02, "note": ""}, {"ing": "Cinnamon", "qty": 0.005, "note": ""}]}]}, "boxes": {"items": [{"name": "Bambino Box", "occasion": "Small family / couple", "items": [{"item": "Himalayan Pink Salt & EVOO", "qty": 1}, {"item": "Cherry Tomatoes & Pesto", "qty": 1}, {"item": "MaMa's Marinara", "qty": 1}, {"item": "Whipped Feta Cheese", "qty": 1}], "manual": 0, "utensils": 15.4, "box": 25}, {"name": "Mamma's Box", "occasion": "Family dinner / gathering", "items": [{"item": "Himalayan Pink Salt & EVOO", "qty": 1}, {"item": "Cherry Tomatoes & Pesto", "qty": 1}, {"item": "Kalamata Olives & SD Tomatoes", "qty": 1}, {"item": "Za'taar & EVOO", "qty": 1}, {"item": "Parmigiano Reggiano", "qty": 1}, {"item": "MaMa's Marinara", "qty": 2}, {"item": "Whipped Feta Cheese", "qty": 1}, {"item": "EVOO with Balsamic Vinegar", "qty": 3}, {"item": "Sweet Labnah", "qty": 1}], "manual": 0, "utensils": 15.4, "box": 45}, {"name": "Mamma's Basket", "occasion": "Large gathering / office", "items": [{"item": "Himalayan Pink Salt & EVOO", "qty": 1}, {"item": "Cherry Tomatoes & Pesto", "qty": 1}, {"item": "Kalamata Olives & SD Tomatoes", "qty": 1}, {"item": "Za'taar & EVOO", "qty": 1}, {"item": "Parmigiano Reggiano", "qty": 1}, {"item": "MaMa's Marinara", "qty": 2}, {"item": "Whipped Feta Cheese", "qty": 1}, {"item": "EVOO with Balsamic Vinegar", "qty": 3}, {"item": "Sweet Labnah", "qty": 1}, {"item": "Hot Honey", "qty": 1}, {"item": "Caprese Salad", "qty": 1}, {"item": "Maple Whipped Butter", "qty": 1}], "manual": 0, "utensils": 15.4, "box": 65}, {"name": "Eid Gathering Box", "occasion": "Eid special edition — total cost entered as one figure", "items": [], "manual": 383, "utensils": 0, "box": 0}]}, "menu": {"items": [{"range": "Mamma's", "group": "Focaccia", "name": "Himalayan Pink Salt & EVOO", "price": 45}, {"range": "Mamma's", "group": "Focaccia", "name": "Cherry Tomatoes & Pesto", "price": 50}, {"range": "Mamma's", "group": "Focaccia", "name": "Kalamata Olives & SD Tomatoes", "price": 60}, {"range": "Nonna's", "group": "Focaccia", "name": "Za'taar & EVOO", "price": 50}, {"range": "Nonna's", "group": "Focaccia", "name": "Parmigiano Reggiano", "price": 60}, {"range": "Nonna's", "group": "Focaccia", "name": "Jalapeno & Cheddar", "price": 60}, {"range": "Sorella's", "group": "Focaccia", "name": "Cinnamon & Vanilla Glaze", "price": 80}, {"range": "Bambino's", "group": "Focaccia", "name": "Italian Herbs & EVOO", "price": 60}, {"range": "Nonna's", "group": "Focaccia", "name": "Dark chocolate & citrus zest", "price": 80}, {"range": "Nonna's", "group": "Focaccia", "name": "Fofo's four cheese & EVOO chili oil", "price": 60}, {"range": "Pantry", "group": "Pantry", "name": "MaMa's Marinara", "price": 15}, {"range": "Pantry", "group": "Pantry", "name": "Whipped Feta Cheese", "price": 25}, {"range": "Pantry", "group": "Pantry", "name": "EVOO with Balsamic Vinegar", "price": 10}, {"range": "Pantry", "group": "Pantry", "name": "Sweet Labnah", "price": 20}, {"range": "Pantry", "group": "Pantry", "name": "Caprese Salad", "price": 25}, {"range": "Pantry", "group": "Pantry", "name": "Hot Honey", "price": 15}, {"range": "Pantry", "group": "Pantry", "name": "Maple Whipped Butter", "price": 25}, {"range": "Gathering Box", "group": "Gathering Box", "name": "Bambino Box", "price": 160}, {"range": "Gathering Box", "group": "Gathering Box", "name": "Mamma's Box", "price": 340}, {"range": "Gathering Basket", "group": "Gathering Box", "name": "Mamma's Basket", "price": 475}, {"range": "Gathering Box", "group": "Gathering Box", "name": "Eid Gathering Box", "price": 700}, {"range": "Gathering Basket", "group": "Gathering Box", "name": "Nonna's Basket", "price": 60}, {"range": "Custom", "group": "Other", "name": "Cherry tomatoes (old)", "price": 45}, {"range": "Custom", "group": "Other", "name": "Zataar (old)", "price": 40}, {"range": "Custom", "group": "Other", "name": "Marinara (old)", "price": 10}, {"range": "Custom", "group": "Other", "name": "Olive & tomatoes (old)", "price": 45}, {"range": "Custom", "group": "Other", "name": "New price (old)", "price": 77}, {"range": "Custom", "group": "Other", "name": "Evoo&salt (old)", "price": 40}, {"range": "Custom", "group": "Other", "name": "Himalayan (old)", "price": 45}, {"range": "Custom", "group": "Other", "name": "Kalamata (old)", "price": 45}, {"range": "Custom", "group": "Other", "name": "Zataar2 (old)", "price": 45}, {"range": "Custom", "group": "Other", "name": "Parmigiano (old)", "price": 50}, {"range": "Custom", "group": "Other", "name": "Whipped feta (old)", "price": 10}, {"range": "Custom", "group": "Other", "name": "Evoo (old)", "price": 5}, {"range": "Custom", "group": "Other", "name": "Pantry parmigiano (old)", "price": 20}, {"range": "Custom", "group": "Other", "name": "Date (old)", "price": 95}, {"range": "Custom", "group": "Other", "name": "Nona's (old)", "price": 60}]}};
+try { S.tab = localStorage.getItem("fofo.tab") || "dash"; S.dashScope = localStorage.getItem("fofo.scope") || "all"; } catch(e){}
+
+// ---------------- calculation engine (mirrors the workbook) ----------------
+function calc(){
+  const st = S.settings || DEFAULT_SETTINGS; const DF = st.deliveryFee==null?40:N(st.deliveryFee), DC = st.deliveryCost==null?40:N(st.deliveryCost);
+  const DIV = (st.vatRegistered && st.pricesInclVat) ? 1+N(st.vatRate) : 1;
+  const rate = st.vatRegistered ? N(st.vatRate) : 0;
+  const ingCost = {}; const ingUnit = {};
+  S.ingredients.forEach(i => { ingCost[i.name] = N(i.pack) ? N(i.price)/N(i.pack) : 0; ingUnit[i.name] = i.uom || i.unit || ""; });
+  const rec = {};
+  S.recipes.forEach(r => { const batch = (r.lines||[]).reduce((a,l)=>a+N(l.qty)*(ingCost[l.ing]||0),0); const cpp = N(r.portions)? batch/N(r.portions):0; rec[r.name] = {batch, cpp, pkg:N(r.packaging), tuc:cpp+N(r.packaging)}; });
+  const box = {};
+  S.boxes.forEach(b => { const cont = (b.items||[]).reduce((a,it)=>a+N(it.qty)*((rec[it.item]||{}).tuc||0),0)+N(b.manual); const pkg = N(b.utensils)+N(b.box); box[b.name] = {contents:cont, pkg, total:cont+pkg}; });
+  const menu = {}; const menuList = [];
+  S.menu.forEach(m => { const priceEx = N(m.price)/DIV; const cost = rec[m.name] ? rec[m.name].cpp : (box[m.name] ? box[m.name].contents : 0); const pkg = rec[m.name] ? rec[m.name].pkg : (box[m.name] ? box[m.name].pkg : 0);
+    const tuc = cost+pkg, con = priceEx-tuc, margin = priceEx? con/priceEx : null; const o = {...m, priceEx, vat:priceEx*rate, priceInc:priceEx*(1+rate), cost, pkg, tuc, con, margin, foodPct: priceEx? cost/priceEx:null,
+      status: con<0 ? "loses" : (margin < N(st.targetMargin) ? "below" : "ok")}; menu[m.name]=o; menuList.push(o); });
+  if (st.categories && !st.categories.some(c=>c.name==="Zakat paid to ZATCA")) st.categories.push({name:"Zakat paid to ZATCA",type:"Drawings",vat:"Out of scope"});
+  st.zakat = st.zakat || {}; const ZK = st.zakat;
+  const catType = {}, catVat = {}; (st.categories||[]).forEach(c => { catType[c.name]=c.type; catVat[c.name]=c.vat; });
+  const enrich = o => {
+    const items = (o.items||[]).filter(i=>i.custom ? (i.name||i.item) : i.item).map(i=> i.custom ? {...i, item: i.name||i.item, label: i.name||i.item} : {...i, label:i.item});
+    const q = i => N(i.qty)||1;
+    const pxOf = i => i.custom ? N(i.price)/DIV : ((menu[i.item]||{}).priceEx||0);
+    const sub = items.reduce((a,i)=>a+q(i)*pxOf(i),0);
+    const fee = o.delivery===false ? 0 : (o.fee!=null && o.fee!=="" ? N(o.fee) : DF), delCost = o.delivery===false ? 0 : (o.delCost!=null && o.delCost!=="" ? N(o.delCost) : DC);
+    const discN = N(o.discount)/DIV, feeN = fee; // delivery is outside VAT
+    const net = sub-discN+feeN, vat = (sub-discN)*rate, total = net+vat;
+    const received = o.status==="Unpaid" ? 0 : (o.status==="Partial" ? Math.min(N(o.paidAmt), total) : total);
+    const units = items.reduce((a,i)=>a+q(i),0), loaves = items.reduce((a,i)=>a+((!i.custom && (menu[i.item]||{}).group==="Focaccia")?q(i):0),0);
+    const ing = items.reduce((a,i)=>a+(i.custom?0:q(i)*((menu[i.item]||{}).cost||0)),0), pkg = items.reduce((a,i)=>a+(i.custom?0:q(i)*((menu[i.item]||{}).pkg||0)),0);
+    const varc = ing+pkg+delCost, con = net-varc;
+    return {...o, items, fee, delCost, discN, feeN, net, vat, total, received, balance: total-received, units, loaves, ing, pkg, varc, con, conPct: net? con/net:null, m: ym(o.date), prodNet: sub-discN};
+  };
+  const orders = S.orders.map(enrich).sort((a,b)=> (a.date||"") < (b.date||"") ? 1 : -1);
+  const expenses = S.expenses.map(e => {
+    const type = catType[e.cat]||"?"; const r = (!st.vatRegistered) ? 0 : (e.vatOverride!==""&&e.vatOverride!=null ? N(e.vatOverride) : (catVat[e.cat]==="Standard"? rate:0));
+    const gross = N(e.in)-N(e.out), vat = Math.round(gross*r/(1+r)*100)/100; return {...e, type, rate:r, gross, vat, net:gross-vat, m: ym(e.date)};
+  }).sort((a,b)=> (a.date||"") < (b.date||"") ? 1 : -1);
+  const wastage = S.wastage.map(w => { const cpu = w.type==="Finished item" ? ((menu[w.item]||{}).tuc||0) : (ingCost[w.item]||0); return {...w, cpu, cost:N(w.qty)*cpu, m: ym(w.date)}; }).sort((a,b)=>(a.date||"")<(b.date||"")?1:-1);
+  // months of FY
+  const fy = st.fyStart || "2026-01-01"; const [fy0y, fy0m] = [parseInt(fy.slice(0,4)), parseInt(fy.slice(5,7))];
+  const months = []; for (let k=0;k<12;k++){ const y = fy0y+Math.floor((fy0m-1+k)/12), mm = (fy0m-1+k)%12; months.push({key:`${y}-${String(mm+1).padStart(2,"0")}`, label:MONTHS[mm]+(y!==fy0y||fy0m!==1?" "+String(y).slice(2):""), y, mm}); }
+  const fyEndKey = months[11].key;
+  const inFY = m => m>=months[0].key && m<=fyEndKey;
+  const sumBy = (arr, f, pred) => arr.reduce((a,x)=> a + (pred(x)? f(x):0), 0);
+  const monthRow = mo => {
+    const om = orders.filter(o=>o.m===mo.key), em = expenses.filter(e=>e.m===mo.key), wm = wastage.filter(w=>w.m===mo.key);
+    const byGroup = g => om.reduce((a,o)=>a+o.items.reduce((b,i)=>b+(i.custom?0:((N(i.qty)||1)*((menu[i.item]||{}).priceEx||0))*((((menu[i.item]||{}).group)||"Other")===g?1:0)),0),0);
+    const r = {key:mo.key,label:mo.label, foc:byGroup("Focaccia"), pan:byGroup("Pantry"), box:byGroup("Gathering Box"), oth:0, disc:-om.reduce((a,o)=>a+o.discN,0), fee:om.reduce((a,o)=>a+o.feeN,0)};
+    r.oth = om.reduce((a,o)=>a+o.prodNet+o.discN,0) - r.foc - r.pan - r.box;
+    r.rev = r.foc+r.pan+r.box+r.oth+r.disc+r.fee;
+    r.ing = om.reduce((a,o)=>a+o.ing,0); r.pkg = om.reduce((a,o)=>a+o.pkg,0); r.del = om.reduce((a,o)=>a+o.delCost,0); r.vc = r.ing+r.pkg+r.del; r.con = r.rev-r.vc; r.conPct = r.rev? r.con/r.rev:null;
+    r.ingB = -em.filter(e=>e.type==="Ingredients").reduce((a,e)=>a+e.net,0); r.pkgB = -em.filter(e=>e.type==="Packaging").reduce((a,e)=>a+e.net,0);
+    r.vari = r.ingB+r.pkgB-r.ing-r.pkg; r.waste = wm.reduce((a,w)=>a+w.cost,0); r.gp = r.con - r.vari; r.gpPct = r.rev? r.gp/r.rev:null;
+    r.opx = {}; (st.categories||[]).filter(c=>c.type==="Operating").forEach(c=>{ r.opx[c.name] = -em.filter(e=>e.cat===c.name).reduce((a,e)=>a+e.net,0); });
+    r.opxT = Object.values(r.opx).reduce((a,b)=>a+b,0); r.np = r.gp-r.opxT; r.npPct = r.rev? r.np/r.rev:null;
+    r.orders = om.length; r.units = om.reduce((a,o)=>a+o.units,0); r.loaves = om.reduce((a,o)=>a+o.loaves,0); r.aov = r.orders? r.rev/r.orders:null;
+    r.vatOut = om.reduce((a,o)=>a+o.vat,0); r.vatIn = -em.filter(e=>["Ingredients","Packaging","Operating","Equipment"].includes(e.type)).reduce((a,e)=>a+e.vat,0); r.vatNet = r.vatOut-r.vatIn;
+    const notOwn = x => x.account!==OWNER;
+    r.cashIn = om.filter(notOwn).reduce((a,o)=>a+o.received,0); r.cashDel = -om.filter(notOwn).reduce((a,o)=>a+o.delCost,0);
+    const eg = t => em.filter(e=>notOwn(e)&&t.includes(e.type)).reduce((a,e)=>a+e.gross,0);
+    r.cashBills = eg(["Ingredients","Packaging","Operating"]); r.cashVat = eg(["VAT"]); r.cashEq = eg(["Equipment"]); r.cashFin = eg(["Capital","Drawings","Loan","Transfer"]);
+    r.ncf = r.cashIn+r.cashDel+r.cashBills+r.cashVat+r.cashEq+r.cashFin;
+    r.goal = (S.goals[mo.key]||{}).rev||0; r.goalP = (S.goals[mo.key]||{}).profit||0;
+    return r;
+  };
+  const cashBefore = key => (st.accounts||[]).reduce((a,x)=>a+N(x.opening),0)
+    + orders.filter(o=>o.account!==OWNER && o.m<key).reduce((a,o)=>a+o.received-o.delCost,0)
+    + expenses.filter(e=>e.account!==OWNER && e.m<key).reduce((a,e)=>a+e.gross,0);
+  const chainCash = rows => { let c = cashBefore(rows[0].key); rows.forEach(r=>{ r.open=c; r.close=c+r.ncf; c=r.close; }); return rows; };
+  const totals = rows => { const tot = {}; ["foc","pan","box","oth","disc","fee","rev","ing","pkg","del","vc","con","ingB","pkgB","vari","waste","gp","opxT","np","orders","units","loaves","vatOut","vatIn","vatNet","cashIn","cashDel","cashBills","cashVat","cashEq","cashFin","ncf","goal","goalP"].forEach(k=>tot[k]=rows.reduce((a,r)=>a+r[k],0));
+    tot.opx = {}; Object.keys(rows[0].opx).forEach(k=>tot.opx[k]=rows.reduce((a,r)=>a+r.opx[k],0));
+    tot.conPct = tot.rev? tot.con/tot.rev:null; tot.gpPct = tot.rev? tot.gp/tot.rev:null; tot.npPct = tot.rev? tot.np/tot.rev:null; tot.aov = tot.orders? tot.rev/tot.orders:null;
+    tot.open = rows[0].open; tot.close = rows[rows.length-1].close; tot.monthsActive = Math.max(1, rows.filter(r=>r.rev).length); return tot; };
+  const pl = chainCash(months.map(monthRow));
+  const openingCash = pl[0].open, tot = totals(pl);
+  const monthsActive = tot.monthsActive;
+  // dashboard scope: lifetime or one financial year
+  const fyOf = m => { const y = parseInt(m.slice(0,4)), mm = parseInt(m.slice(5,7)); return fy0m===1 ? y : (mm>=fy0m ? y : y-1); };
+  const dataMonths = [...orders, ...expenses, ...wastage].map(x=>x.m).filter(m=>/^\d{4}-\d{2}$/.test(m));
+  const nowM = ym(today()); const minM = dataMonths.length ? dataMonths.reduce((a,b)=>a<b?a:b) : months[0].key, maxM0 = dataMonths.length ? dataMonths.reduce((a,b)=>a>b?a:b) : months[0].key, maxM = maxM0>nowM ? maxM0 : nowM;
+  const fyYears = []; for (let y=fyOf(minM); y<=Math.max(fyOf(maxM), fy0y); y++) fyYears.push(y);
+  const monthsOf = (y0, m0, n) => { const out=[]; for (let k=0;k<n;k++){ const y = y0+Math.floor((m0-1+k)/12), mm = (m0-1+k)%12; out.push({key:`${y}-${String(mm+1).padStart(2,"0")}`, label:MONTHS[mm]+" "+String(y).slice(2), y, mm}); } return out; };
+  const fyMonths = y => monthsOf(y, fy0m, 12);
+  const lifeMonths = (()=>{ const a = fyMonths(fyYears[0])[0], n = (parseInt(maxM.slice(0,4))-a.y)*12 + (parseInt(maxM.slice(5,7))-1-a.mm) + 1; return monthsOf(a.y, a.mm+1, Math.max(1,n)); })();
+  const scope = (S.dashScope && S.dashScope!=="all" && fyYears.includes(+S.dashScope)) ? +S.dashScope : "all";
+  const scopeMonths = scope==="all" ? lifeMonths : fyMonths(scope);
+  const dpl = chainCash(scopeMonths.map(monthRow)), dtot = totals(dpl);
+  const byYear = fyYears.map(y => { const rows = dpl.filter(r=>fyOf(r.key)===y); return rows.length ? {y, label:"FY "+y, ...totals(rows)} : null; }).filter(Boolean);
+  const dash = {scope, fyYears, months: scopeMonths, pl: dpl, tot: dtot, byYear, from: scopeMonths[0].key, to: scopeMonths[scopeMonths.length-1].key};
+  // daily
+  const daily = []; const d0 = new Date(fy+"T00:00:00Z"); const byDay = {}; orders.forEach(o=>{ (byDay[o.date] ||= []).push(o); });
+  const opxByM = {}; pl.forEach(r=>opxByM[r.key]=r.opxT);
+  let mtd = 0;
+  for (let k=0;k<366;k++){ const d = new Date(d0.getTime()+k*864e5); const key = d.toISOString().slice(0,10); if (k>0 && key.slice(0,7)>fyEndKey) break;
+    const os = byDay[key]||[]; const dim = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+1, 0)).getUTCDate();
+    const rev = os.reduce((a,o)=>a+o.net,0), ing = os.reduce((a,o)=>a+o.ing,0), pkg = os.reduce((a,o)=>a+o.pkg,0), del = os.reduce((a,o)=>a+o.delCost,0);
+    const con = rev-ing-pkg-del, fixed = (opxByM[key.slice(0,7)]||0)/dim; if (d.getUTCDate()===1) mtd = 0; mtd += rev;
+    daily.push({key, dow:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getUTCDay()], orders:os.length, units:os.reduce((a,o)=>a+o.units,0), loaves:os.reduce((a,o)=>a+o.loaves,0), rev, disc:os.reduce((a,o)=>a+o.discN,0), ing, pkg, del, con, conPct: rev? con/rev:null, fixed, profit: con-fixed, mtd});
+  }
+  // items
+  const items = menuList.map(m => { const per = months.map(mo => orders.filter(o=>o.m===mo.key).reduce((a,o)=>a+o.items.reduce((b,i)=> b + (!i.custom && i.item===m.name ? (N(i.qty)||1):0),0),0)); const units = per.reduce((a,b)=>a+b,0); return {...m, per, units, sales: units*m.priceEx, est: units*m.con}; });
+  const ranked = [...items].filter(i=>i.units>0).sort((a,b)=>b.units-a.units); items.forEach(i=>{ i.rank = i.units? ranked.indexOf(i)+1 : null; });
+  // balance sheet (as at FY end by default)
+  const bs = asAt => {
+    const o = orders.filter(x=>x.date && x.date<=asAt), e = expenses.filter(x=>x.date && x.date<=asAt);
+    const accts = (st.accounts||[]).map(a => ({name:a.name, bal: N(a.opening) + o.filter(x=>x.account===a.name).reduce((s,x)=>s+x.received-x.delCost,0) + e.filter(x=>x.account===a.name).reduce((s,x)=>s+x.gross,0)}));
+    const et = t => e.filter(x=>x.type===t).reduce((s,x)=>s+x.net,0);
+    const recv = o.reduce((s,x)=>s+x.balance,0), equip = -et("Equipment"), transit = -et("Transfer");
+    const ta = accts.reduce((s,a)=>s+a.bal,0)+recv+equip+transit;
+    const vatL = o.reduce((s,x)=>s+x.vat,0)+e.reduce((s,x)=>s+x.vat,0)+et("VAT"), loans = et("Loan"), tl = vatL+loans;
+    const opening = (st.accounts||[]).reduce((s,a)=>s+N(a.opening),0);
+    const cap = et("Capital") - e.filter(x=>x.account===OWNER).reduce((s,x)=>s+x.gross,0) - o.filter(x=>x.account===OWNER).reduce((s,x)=>s+x.received-x.delCost,0);
+    const draw = et("Drawings"); const acc = o.reduce((s,x)=>s+x.net-x.delCost,0)+et("Ingredients")+et("Packaging")+et("Operating");
+    const te = opening+cap+draw+acc; return {accts, recv, equip, transit, ta, vatL, loans, tl, opening, cap, draw, acc, te, tle: tl+te, check: Math.round((ta-tl-te)*100)/100};
+  };
+  // customers
+  const custs = S.customers.map(cu => { const os = orders.filter(o=>o.customer===cu.name); const dates = os.map(o=>o.date).filter(Boolean).sort(); const last = dates[dates.length-1];
+    return {...cu, first: dates[0]||"", last: last||"", days: last? Math.round((Date.now()-new Date(last+"T00:00:00Z"))/864e5) : null, n: os.length, spent: os.reduce((a,o)=>a+o.total,0), aov: os.length? os.reduce((a,o)=>a+o.total,0)/os.length:null,
+      fav: (()=>{ const c={}; os.forEach(o=>o.items.forEach(i=>c[i.label]=(c[i.label]||0)+(N(i.qty)||1))); return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0]||""; })() }; });
+  // years
+  const years = [0,1,2].map(k => { const y0 = months[0].key, start = `${fy0y+k}-${String(fy0m).padStart(2,"0")}`, endY = fy0y+k+1, end = `${fy0m===1? fy0y+k : endY}-${String(fy0m===1?12:fy0m-1).padStart(2,"0")}`;
+    const o = orders.filter(x=>x.m>=start && x.m<=end), e = expenses.filter(x=>x.m>=start && x.m<=end); const et = t => -e.filter(x=>x.type===t).reduce((s,x)=>s+x.net,0);
+    const rev = o.reduce((s,x)=>s+x.net,0), vc = o.reduce((s,x)=>s+x.varc,0), con = rev-vc, vari = et("Ingredients")+et("Packaging")-o.reduce((s,x)=>s+x.ing+x.pkg,0), opx = et("Operating");
+    return {label:"FY "+(fy0y+k), orders:o.length, units:o.reduce((s,x)=>s+x.units,0), loaves:o.reduce((s,x)=>s+x.loaves,0), rev, vc, con, conPct: rev?con/rev:null, vari, gp:con-vari, opx, np:con-vari-opx, npPct: rev?(con-vari-opx)/rev:null, aov:o.length?rev/o.length:null}; });
+  years.forEach((y,i)=>{ y.growth = i&&years[i-1].rev? y.rev/years[i-1].rev-1 : null; });
+  // Zakat (sole trader: net zakatable assets × 2.5% per Hijri year) and ZATCA deadlines
+  const filings = [...S.filings].map(f=>({...f, m: ym(f.date)})).sort((a,b)=> (a.date||"") < (b.date||"") ? 1 : -1);
+  const zakat = (() => {
+    const asAt = ZK.asAt || today(); const b = bs(asAt);
+    const cash = b.accts.reduce((a,x)=>a+Math.max(0,x.bal),0), recv = Math.max(0,b.recv), stock = N(ZK.stock), otherA = N(ZK.otherAssets);
+    const vatL = Math.max(0,b.vatL), loans = Math.max(0,b.loans), otherL = N(ZK.otherLiab);
+    const assets = cash+recv+stock+otherA, liab = vatL+loans+otherL, base = Math.max(0, assets-liab);
+    const rate = ZK.basis==="gregorian" ? 0.025776 : 0.025; const nisab = N(ZK.nisab);
+    const due = (nisab && base < nisab) ? 0 : base*rate;
+    const yr = asAt.slice(0,4); const paid = filings.filter(f=>f.type==="Zakat payment" && f.status!=="Due" && (f.period||"").includes(yr) ).reduce((a,f)=>a+N(f.amount),0);
+    let hijri = ""; try { hijri = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura",{day:"numeric",month:"long",year:"numeric"}).format(new Date(asAt+"T12:00:00Z")); } catch(e){}
+    return {asAt, hijri, cash, recv, stock, otherA, vatL, loans, otherL, assets, liab, base, rate, nisab, due, paid, remaining: Math.max(0, due-paid), accts:b.accts};
+  })();
+  const deadlines = (() => {
+    const out = []; const t0 = today(); const addD = (d, n) => { const x = new Date(d+"T00:00:00Z"); x.setUTCDate(x.getUTCDate()+n); return x.toISOString().slice(0,10); };
+    const has = (type, period) => filings.find(f=>f.type===type && (f.period||"").replace(/\s+/g,"").toLowerCase()===period.replace(/\s+/g,"").toLowerCase() && f.status!=="Due");
+    // VAT returns: quarterly, due by the end of the month after the quarter ends
+    for (let k=-1;k<=1;k++){ const now = new Date(); const q0 = Math.floor(now.getUTCMonth()/3)+k; const y = now.getUTCFullYear()+Math.floor(q0/4), q = ((q0%4)+4)%4;
+      const end = new Date(Date.UTC(y, q*3+3, 0)), due = new Date(Date.UTC(y, q*3+4, 0)); const period = `Q${q+1} ${y}`; const f = has("VAT return", period);
+      out.push({what:"VAT return", period, due: due.toISOString().slice(0,10), done: !!f, ref: f?.ref||"", periodEnd: end.toISOString().slice(0,10)}); }
+    // Zakat return: within 120 days of the financial year end
+    for (let k=-1;k<=0;k++){ const y = fy0y+k; const fyEnd = monthsOf(y, fy0m, 12)[11].key; const endD = new Date(Date.UTC(parseInt(fyEnd.slice(0,4)), parseInt(fyEnd.slice(5,7)), 0)).toISOString().slice(0,10);
+      const period = "FY "+y; const f = has("Zakat return", period); out.push({what:"Zakat return", period, due: addD(endD,120), done: !!f, ref: f?.ref||"", periodEnd: endD}); }
+    // anything logged as still due
+    filings.filter(f=>f.status==="Due" && f.due).forEach(f=> out.push({what: f.type, period: f.period||"", due: f.due, done:false, ref:f.ref||"", logged:true, id:f.id}));
+    return out.filter(d=>d.due>=addD(t0,-60)).sort((a,b)=> a.due<b.due?-1:1).map(d=>({...d, days: Math.round((new Date(d.due+"T00:00:00Z")-new Date(t0+"T00:00:00Z"))/864e5)}));
+  })();
+  // dashboard analytics
+  const dx = (() => {
+    const t0 = today(); const shift = (d,n) => { const x = new Date(d+"T00:00:00Z"); x.setUTCDate(x.getUTCDate()+n); return x.toISOString().slice(0,10); };
+    const dated = orders.filter(o=>o.date); const so = dated.filter(o=>o.m>=dash.from && o.m<=dash.to);
+    const sumR = os => os.reduce((a,o)=>a+o.net,0); const stat = os => ({rev:sumR(os), orders:os.length, aov: os.length? sumR(os)/os.length:null, units: os.reduce((a,o)=>a+o.units,0)});
+    const chg = (a,b) => (b && b.rev) ? a.rev/b.rev-1 : null;
+    // A. month comparison + B. rolling windows
+    const mPrev = (key,n) => { const y=parseInt(key.slice(0,4)), m=parseInt(key.slice(5,7))-1-n; const yy = y+Math.floor(m/12), mm=((m%12)+12)%12; return `${yy}-${String(mm+1).padStart(2,"0")}`; };
+    const byM = key => stat(dated.filter(o=>o.m===key)); const thisM = nowM, lastM = mPrev(nowM,1), lyM = mPrev(nowM,12);
+    const win = (a,b) => stat(dated.filter(o=>o.date>=a && o.date<=b));
+    const periods = [
+      {label:"This month ("+thisM+")", cur: byM(thisM), prev: byM(lastM), vs:"vs last month"},
+      {label:"Same month last year", cur: byM(lyM), prev: null, vs:""},
+      {label:"Last 7 days", cur: win(shift(t0,-6),t0), prev: win(shift(t0,-13),shift(t0,-7)), vs:"vs previous 7"},
+      {label:"Last 30 days", cur: win(shift(t0,-29),t0), prev: win(shift(t0,-59),shift(t0,-30)), vs:"vs previous 30"},
+    ].map(p=>({...p, chg: chg(p.cur, p.prev)}));
+    periods[0].chgLY = chg(periods[0].cur, periods[1].cur);
+    // C. weekday
+    const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; const wd = DOW.map((d,i)=>{ const os = so.filter(o=>new Date(o.date+"T00:00:00Z").getUTCDay()===i); return {label:d, rev:sumR(os), orders:os.length}; });
+    // D. customers
+    const first = {}; [...dated].sort((a,b)=>a.date<b.date?-1:1).forEach(o=>{ const k=(o.customer||"").toLowerCase(); if (k && !first[k]) first[k]=o.date; });
+    const named = so.filter(o=>o.customer); const returning = named.filter(o=>first[o.customer.toLowerCase()] < o.date);
+    const repeatRate = named.length? returning.length/named.length : null;
+    const newRet = dash.months.map(mo=>{ const os = named.filter(o=>o.m===mo.key); const ret = os.filter(o=>first[o.customer.toLowerCase()] < o.date).length; return {label:mo.label, ret, nw: os.length-ret}; });
+    const spend = {}; so.forEach(o=>{ if(!o.customer) return; const k=o.customer; spend[k] = spend[k]||{name:k, rev:0, n:0}; spend[k].rev+=o.total; spend[k].n++; });
+    const topCust = Object.values(spend).sort((a,b)=>b.rev-a.rev).slice(0,5);
+    const life = {}; dated.forEach(o=>{ if(!o.customer) return; const k=o.customer.toLowerCase(); life[k] = life[k]||{name:o.customer, n:0, spent:0, last:""}; life[k].n++; life[k].spent+=o.total; if (o.date>life[k].last) life[k].last=o.date; });
+    const quiet = Object.values(life).map(c=>({...c, days: Math.round((new Date(t0+"T00:00:00Z")-new Date(c.last+"T00:00:00Z"))/864e5), id: (S.customers.find(x=>(x.name||"").toLowerCase()===c.name.toLowerCase())||{}).id})).filter(c=>c.n>=2 && c.days>=45).sort((a,b)=>b.spent-a.spent).slice(0,8);
+    const uniq = new Set(named.map(o=>o.customer.toLowerCase())).size;
+    const deliv = so.filter(o=>o.delivery!==false), pick = so.filter(o=>o.delivery===false);
+    const delivery = {n: deliv.length, pickup: pick.length, share: so.length? deliv.length/so.length:null, fees: deliv.reduce((a,o)=>a+o.feeN,0), cost: deliv.reduce((a,o)=>a+o.delCost,0)}; delivery.net = delivery.fees-delivery.cost;
+    // E. product mix + top by contribution
+    const mix = {}, perItem = {}; so.forEach(o=>o.items.forEach(i=>{ const q = N(i.qty)||1; const m = i.custom? null : menu[i.item]; const px = i.custom? N(i.price)/DIV : (m? m.priceEx:0); const rg = i.custom? "Custom" : (m? (m.range||m.group||"Other") : "Other");
+      mix[rg] = (mix[rg]||0)+q*px; const key = i.label; perItem[key] = perItem[key]||{name:key, units:0, rev:0, con:0}; perItem[key].units+=q; perItem[key].rev+=q*px; perItem[key].con += q*(m? m.con : px); }));
+    const mixList = Object.entries(mix).map(([label,rev])=>({label,rev})).sort((a,b)=>b.rev-a.rev);
+    const topCon = Object.values(perItem).sort((a,b)=>b.con-a.con).slice(0,5), worstCon = Object.values(perItem).filter(x=>x.con<0).sort((a,b)=>a.con-b.con).slice(0,3);
+    // F. loaves per week (last 12 weeks, weeks start Sunday)
+    const d0 = new Date(t0+"T00:00:00Z"); const sunday = shift(t0, -d0.getUTCDay()); const weeks = []; for (let k=11;k>=0;k--){ const a = shift(sunday,-7*k), b = shift(a,6); const os = dated.filter(o=>o.date>=a && o.date<=b); weeks.push({label:a.slice(5), start:a, loaves: os.reduce((x,o)=>x+o.loaves,0), units: os.reduce((x,o)=>x+o.units,0), orders:os.length}); }
+    // G. contribution % by month -> dash.pl
+    // H. cash position
+    const bt = bs(t0); const cashNow = bt.accts.reduce((a,x)=>a+x.bal,0); const vatOwed = Math.max(0,bt.vatL); const zakAcc = Math.max(0, zakat.remaining); const cash = {cashNow, vatOwed, zakAcc, recv: bt.recv, yours: cashNow-vatOwed-zakAcc, accts: bt.accts};
+    // I. goal MTD
+    const g = (S.goals[nowM]||{}).rev||0; const dim = new Date(Date.UTC(parseInt(nowM.slice(0,4)), parseInt(nowM.slice(5,7)), 0)).getUTCDate(); const dom = parseInt(t0.slice(8,10));
+    const goal = {goal:g, mtd: periods[0].cur.rev, pct: g? periods[0].cur.rev/g : null, pace: g? g*dom/dim : null, dom, dim, left: g? Math.max(0, g-periods[0].cur.rev) : 0, daysLeft: dim-dom};
+    // J. alerts
+    const alerts = [];
+    deadlines.filter(d=>!d.done && d.days<0).forEach(d=>alerts.push({k:"bad", t:`${d.what} ${d.period} overdue (${d.due})`, tab:"zakat"}));
+    deadlines.filter(d=>!d.done && d.days>=0 && d.days<=14).forEach(d=>alerts.push({k:"warn", t:`${d.what} ${d.period} due in ${d.days} days`, tab:"zakat"}));
+    const losing = menuList.filter(m=>m.status==="loses"), below = menuList.filter(m=>m.status==="below"), noCost = menuList.filter(m=>m.group==="Focaccia" && !m.cost);
+    if (losing.length) alerts.push({k:"bad", t:`${losing.length} menu item${losing.length>1?"s":""} losing money: ${losing.slice(0,3).map(m=>m.name).join(", ")}`, tab:"menu"});
+    if (below.length) alerts.push({k:"warn", t:`${below.length} item${below.length>1?"s":""} below target margin`, tab:"menu"});
+    if (noCost.length) alerts.push({k:"warn", t:`${noCost.length} focaccia${noCost.length>1?"s":""} without a recipe cost`, tab:"recipes"});
+    const noAcct = orders.filter(o=>!o.account).length; if (noAcct) alerts.push({k:"warn", t:`${noAcct} order${noAcct>1?"s":""} missing a paid-into account`, tab:"orders"});
+    if (bt.check!==0) alerts.push({k:"bad", t:"Balance sheet out of balance", tab:"bs"});
+    if (quiet.length) alerts.push({k:"", t:`${quiet.length} regular${quiet.length>1?"s":""} gone quiet (45+ days)`, tab:"customers"});
+    if (g && goal.pct!=null && periods[0].cur.rev < goal.pace*0.8) alerts.push({k:"warn", t:`Behind this month's target: ${fmt0(goal.mtd)} of ${fmt0(g)} (${pct(goal.pct)})`, tab:"goals"});
+    // K. heatmap
+    const timed = so.filter(o=>o.time); const hm = {};
+    if (timed.length >= 5){ const hours = [...Array(16)].map((_,i)=>8+i); timed.forEach(o=>{ const d = new Date(o.date+"T00:00:00Z").getUTCDay(); const h = Math.min(23, Math.max(8, parseInt(o.time.slice(0,2)))); hm[d+":"+h] = (hm[d+":"+h]||0)+1; });
+      var heat = {mode:"hour", cols: hours.map(h=>({key:h, label:(h%12||12)+(h<12?"a":"p")})), rows: DOW.map((d,i)=>({label:d, key:i})), get:(r,c)=>hm[r+":"+c]||0, n: timed.length, note:"Orders by weekday and hour (orders with a time recorded)"}; }
+    else { so.forEach(o=>{ const d = new Date(o.date+"T00:00:00Z").getUTCDay(); const w = Math.min(5, Math.ceil(parseInt(o.date.slice(8,10))/7)); hm[d+":"+w] = (hm[d+":"+w]||0)+1; });
+      var heat = {mode:"week", cols: [1,2,3,4,5].map(w=>({key:w, label:"Wk "+w})), rows: DOW.map((d,i)=>({label:d, key:i})), get:(r,c)=>hm[r+":"+c]||0, n: so.length, note:"Orders by weekday and week of the month. Record a time on orders (Cashier / order form) and this becomes weekday × hour."}; }
+    heat.max = Math.max(1, ...Object.values(hm));
+    // L. occasions
+    const occ = {}; so.forEach(o=>{ if (o.occasion){ occ[o.occasion] = occ[o.occasion]||{label:o.occasion, rev:0, n:0}; occ[o.occasion].rev+=o.net; occ[o.occasion].n++; } });
+    const occList = Object.values(occ).sort((a,b)=>b.rev-a.rev);
+    return {periods, wd, repeatRate, newRet, topCust, quiet, uniq, delivery, mixList, topCon, worstCon, weeks, cash, goal, alerts, heat, occList, n: so.length};
+  })();
+  return {enrich, dash, dx, zakat, deadlines, filings, st, DIV, DF, DC, rate, ingCost, ingUnit, rec, box, menu, menuList, orders, expenses, wastage, months, pl, tot, daily, items, bs, custs, years, monthsActive, fyEndKey, catType};
+}
+
+// ---------------- persistence ----------------
+const docs = {settings:"config/settings", ingredients:"config/ingredients", recipes:"config/recipes", boxes:"config/boxes", menu:"config/menu", suppliers:"config/suppliers", goals:"config/goals"};
+const pending = {};
+function saveConfig(key){ // debounced per doc
+  clearTimeout(pending[key]); pending[key] = setTimeout(async () => {
+    const body = key==="settings" ? S.settings : (key==="goals" ? {months:S.goals} : {items:S[key]});
+    if (!db) { try{ localStorage.setItem("fofo."+key, JSON.stringify(body)); }catch(e){} return; }
+    try { await db.doc(docs[key]).set(JSON.parse(JSON.stringify(body))); toast("Saved"); } catch(e){ console.error("save "+key, e); toast("Could not save "+key+": "+(e.code||"")+" "+(e.message||""), true); }
+  }, 500);
+}
+async function saveRow(coll, row){ const id = row.id || uid(); const body = {...row}; delete body.id;
+  const list = S[coll]; const idx = list.findIndex(x=>x.id===id); if (idx>=0) list[idx] = {...body, id}; else list.push({...body, id});
+  if (!db) { try{ localStorage.setItem("fofo."+coll, JSON.stringify(list)); }catch(e){} render(); return; }
+  try { await db.collection(coll).doc(id).set(JSON.parse(JSON.stringify(body))); toast("Saved"); } catch(e){ toast("Could not save: "+(e.message||e.code), true); } render(); }
+async function deleteRow(coll, id){ S[coll] = S[coll].filter(x=>x.id!==id); if (coll==="expenses" || coll==="filings") saveBill(id, null, true);
+  if (!db) { try{ localStorage.setItem("fofo."+coll, JSON.stringify(S[coll])); }catch(e){} render(); return; }
+  try { await db.collection(coll).doc(id).delete(); toast("Deleted"); } catch(e){ toast("Could not delete: "+(e.message||e.code), true); } render(); }
+let toastT; function toast(msg, bad){ let t = $("#toast"); if(!t){ t=document.createElement("div"); t.id="toast"; t.className="toast"; document.body.appendChild(t);} t.textContent=msg; t.style.background = bad? "var(--red)":"var(--olive)"; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, bad? 6000 : 2200); }
+
+function applySeed(){ // when nothing has been stored anywhere yet, start from the FoFocaccia menu, recipes, boxes and ingredients
+  const filled = [];
+  if (!S.settings){ S.settings = JSON.parse(JSON.stringify(SEED.settings)); filled.push("settings"); }
+  for (const k of ["ingredients","recipes","boxes","menu"]) if (!S[k].length){ S[k] = JSON.parse(JSON.stringify(SEED[k].items)); filled.push(k); }
+  if (S.dbOn && S.canWrite) filled.forEach(k => saveConfig(k));
+  if (!S.dbOn){ // local copy: bring an older saved menu up to date without losing the user's own items
+    const has = n => S.menu.some(m=>(m.name||"").toLowerCase()===n.toLowerCase());
+    const nb = S.menu.find(m=>m.name==="Nonna's Box"); if (nb && !has("Mamma's Basket")){ nb.name="Mamma's Basket"; nb.range="Gathering Basket"; const bx = S.boxes.find(b=>b.name==="Nonna's Box"); if (bx) bx.name="Mamma's Basket"; }
+    const wf = S.menu.find(m=>m.name==="Whipped Feta Cheese"); if (wf && N(wf.price)===20) wf.price = 25;
+    let changed = false; SEED.menu.items.forEach(m=>{ if (!has(m.name)){ S.menu.push({...m}); changed = true; } });
+    S.menu = S.menu.filter(m=>!(m.name==="New item" && !N(m.price)));
+    if (changed) saveConfig("menu"); }
+}
+async function boot(){
+  const tok = customerToken(); if (tok){ renderCustomer(tok); return; }
+  const store = window.FofoStore;
+  if (store && store.configured){ // shared mode: sign in first, then everything comes from the shared database
+    $("#tabs").hidden = true; $("#xlsBtn").hidden = true; $("#status").textContent = "sign in to continue";
+    const conn = await store.connect(); db = conn.db; user = conn.email; $("#tabs").hidden = false; $("#xlsBtn").hidden = false; $("#outBtn").hidden = false; render();
+  } else { // no database configured: keep data in this browser only
+    try { Object.keys(docs).forEach(k=>{ const v = localStorage.getItem("fofo."+k); if(v){ const b=JSON.parse(v); if(k==="settings") S.settings=b; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; } });
+      ["orders","expenses","wastage","customers","filings"].forEach(k=>{ const v=localStorage.getItem("fofo."+k); if(v) S[k]=JSON.parse(v); }); } catch(e){}
+    render();
+  }
+  if (db){ S.dbOn = true; S.canWrite = true;
+    Object.entries(docs).forEach(([k,p]) => db.doc(p).onSnapshot(snap => { if(!snap.exists) return; const b = JSON.parse(JSON.stringify(snap.data())); if(k==="settings") S.settings={...DEFAULT_SETTINGS,...b}; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; S.ready=true; renderSoon(); }, e=>console.warn(k,e)));
+    ["orders","expenses","wastage","customers","filings"].forEach(c => db.collection(c).onSnapshot(snap => { S[c] = snap.docs.map(d=>({id:d.id, ...JSON.parse(JSON.stringify(d.data()))})); renderSoon(); }, e=>console.warn(c,e)));
+    setTimeout(()=>{ S.ready=true; applySeed(); render(); }, 2500); // an empty database starts from the seed, saved so everyone shares it
+  } else { S.ready=true; applySeed(); render(); }
+}
+
+// ---------------- UI ----------------
+const TABS = [["dash","📊 Dashboard"],["cashier","🧾 Cashier"],["orders","📋 Orders"],["expenses","💸 Expenses"],["daily","📅 Daily"],["monthly","📊 Monthly"],["yearly","📈 Yearly"],["items","🍞 Items"],["pl","💳 P&L & Cash"],["bs","🏦 Balance Sheet"],["vat","🧾 VAT"],["zakat","🕌 Zakat & ZATCA"],["customers","👥 Customers"],["menu","💰 Menu & Pricing"],["recipes","🧾 Recipes"],["boxes","🎁 Boxes"],["ingredients","🧂 Ingredients"],["batch","🛒 Batch & Shopping"],["goals","🎯 Goals"],["wastage","🗑️ Wastage"],["settings","⚙️ Settings"]];
+function renderTabs(){ $("#tabs").innerHTML = TABS.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-tab="${k}">${l}</button>`).join(""); }
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; S.tab = b.dataset.tab; try{localStorage.setItem("fofo.tab",S.tab);}catch(x){} render(); window.scrollTo(0,0); });
+
+let C;
+function editing(){ const a = document.activeElement; return !!(a && a.closest && a.closest("#view") && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.id!=="q"); }
+function renderSoon(){ // called when the shared store pushes new data: wait if a field is being edited so the redraw does not wipe what is being typed
+  if (!editing()){ S._deferred = false; return render(); }
+  if (S._deferred) return; S._deferred = true; const a = document.activeElement; a.addEventListener("blur", ()=>{ if (S._deferred) render(); }, {once:true}); }
+setInterval(()=>{ if (S._deferred && !editing()) render(); }, 800); if (location.protocol==="file:") window.__renderSoon = renderSoon;
+function render(){
+  S._deferred = false;
+  renderTabs();
+  $("#status").textContent = !S.ready ? "loading…" : (S.dbOn ? "✓ live · " + (user||"") : "⚠ no database configured — saving in this browser only");
+  if (!S.settings) { $("#view").innerHTML = `<div class="empty">No settings yet. ${S.dbOn? "Waiting for the shared store…":""}</div>`; return; }
+  C = calc();
+  const v = views[S.tab] || views.dash; $("#view").innerHTML = v();
+  bind();
+  if (S.tab==="cashier") drawReceipt($("#rc"), receiptOf(C.enrich(S.cash)));
+}
+const th = cols => "<tr>"+cols.map(c=>`<th class="${c.startsWith("#")?"n":""}">${esc(c.replace(/^#/,""))}</th>`).join("")+"</tr>";
+const td = (v, cls="") => `<td class="${cls}">${v}</td>`;
+const n0 = v => td(fmt0(v), "n"+(v<0?" neg":"")); const n2 = v => td(fmt2(v), "n"+(v<0?" neg":"")); const np = v => td(pct(v), "n"+(v<0?" neg":"")); const ni = v => td(int(v), "n");
+const monthHdr = extra => th([extra||"", ...C.months.map(m=>"#"+m.label), "#Full year"]);
+const mrow = (label, f, kind="", fm=n0, totf) => `<tr class="${kind}">${td(label)}${C.pl.map(r=>fm(f(r))).join("")}${fm(totf? totf(C.tot) : C.pl.reduce((a,r)=>a+(f(r)||0),0))}</tr>`;
+const inp = (key, val, type="text", extra="") => `<input class="in" type="${type}" ${type==="number"?'step="any"':""} data-k="${key}" value="${esc(val ?? "")}" ${extra}>`;
+const sel = (key, val, opts, extra="") => `<select class="in" data-k="${key}" ${extra}>${opts.map(o=>`<option ${o===val?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+const statusPill = s => s==="loses" ? `<span class="pill bad">⚠ Loses money</span>` : s==="below" ? `<span class="pill warn">Below target</span>` : `<span class="pill ok">✓ On target</span>`;
+const canW = () => S.canWrite;
+
+function hbars(list, valueOf, fmt=fmt0, color="var(--olive-2)"){ const max = Math.max(1, ...list.map(x=>Math.abs(valueOf(x)))); return `<div class="hb">${list.map(x=>{ const v = valueOf(x); return `<div class="hb-row"><span class="hb-l">${esc(x.label||x.name)}</span><span class="hb-bar"><i style="width:${Math.round(Math.abs(v)/max*100)}%;background:${v<0?"var(--red)":color}"></i></span><b class="hb-v ${v<0?"neg":""}">${fmt(v)}</b></div>`; }).join("")}</div>`; }
+function stackChart(a, b, labels, colors){ const W=720,H=200,pl=40,pb=28,pt=10; const max = Math.max(1, ...a.map((v,i)=>v+b[i])); const y = v => pt + (max-v)/max*(H-pt-pb); const gw = (W-pl-10)/labels.length; const bw = gw*.6;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${[0,.5,1].map(t=>`<line x1="${pl}" x2="${W-10}" y1="${y(t*max)}" y2="${y(t*max)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(t*max)+4}" font-size="10" text-anchor="end" fill="var(--muted)">${Math.round(t*max)}</text>`).join("")}
+  ${labels.map((l,i)=>`<text x="${pl+gw*i+gw/2}" y="${H-8}" font-size="11" text-anchor="middle" fill="var(--muted)">${esc(l)}</text>`).join("")}
+  ${a.map((v,i)=>`<rect x="${pl+gw*i+gw*.2}" y="${y(v)}" width="${bw}" height="${y(0)-y(v)}" fill="${colors[0]}"><title>${esc(labels[i])}: ${v} returning</title></rect><rect x="${pl+gw*i+gw*.2}" y="${y(v+b[i])}" width="${bw}" height="${y(0)-y(b[i])}" fill="${colors[1]}"><title>${esc(labels[i])}: ${b[i]} new</title></rect>`).join("")}</svg>`; }
+function heatTable(h){ return `<div class="tw"><table class="heat"><tr><th></th>${h.cols.map(c=>`<th>${c.label}</th>`).join("")}</tr>${h.rows.map(r=>`<tr><td><b>${r.label}</b></td>${h.cols.map(c=>{ const v = h.get(r.key,c.key); return `<td class="n" style="background:color-mix(in srgb,var(--olive-2) ${Math.round(v/h.max*85)}%,transparent)">${v||""}</td>`; }).join("")}</tr>`).join("")}</table></div>`; }
+function barChart(series, labels, colors){ // simple grouped column chart, to scale
+  const W=720,H=220,pl=56,pb=28,pt=12; const all = series.flat(); const max = Math.max(1, ...all.map(v=>Math.abs(v))); const zero = all.some(v=>v<0);
+  const min = zero ? Math.min(...all,0) : 0; const span = max-min||1; const y = v => pt + (max-v)/span*(H-pt-pb); const gw = (W-pl-10)/labels.length; const bw = gw/(series.length+1);
+  const ticks = [0,.25,.5,.75,1].map(t=>min+t*span);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="chart">${ticks.map(t=>`<line x1="${pl}" x2="${W-10}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(t)+4}" font-size="10" text-anchor="end" fill="var(--muted)">${fmt0(t)}</text>`).join("")}
+  ${labels.map((l,i)=>`<text x="${pl+gw*i+gw/2}" y="${H-8}" font-size="11" text-anchor="middle" fill="var(--muted)">${esc(l)}</text>`).join("")}
+  ${series.map((s,si)=>s.map((v,i)=>`<rect x="${pl+gw*i+bw*(si+.5)}" y="${Math.min(y(v),y(0))}" width="${bw*.9}" height="${Math.abs(y(v)-y(0))}" fill="${colors[si]}"><title>${esc(labels[i])}: ${fmt0(v)}</title></rect>`).join("")).join("")}</svg>`;
+}
+
+function newCashDraft(){ S.cash = {date: today(), customer:"", phone:"", items:[{item:"",qty:1}], delivery:true, account:(S.settings?.accounts?.[0]||{}).name||"", notes:"", payLink:"", receiptNo:null, id:null}; }
+const views = {
+cashier(){ if (!S.cash) newCashDraft(); const r = S.cash; const known = knownCustomers(); const o = C.enrich(r); const R = receiptOf(o); const issued = !!r.receiptNo;
+  return `<div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,400px);align-items:start"><div class="panel"><h2>${issued? "Receipt "+esc(r.receiptNo)+" — issued" : "New sale"}</h2><p class="sub">Builds the receipt and records the order at the same time. Customers and phone numbers are remembered.</p>
+    <form id="cash" class="form">
+      <label>Date<input class="in" id="c_date" type="date" value="${esc(r.date)}" ${issued?"disabled":""}></label>
+      <label>Customer<input class="in" id="c_customer" list="cCust" autocomplete="off" value="${esc(r.customer)}" ${issued?"disabled":""}><datalist id="cCust">${known.map(k=>`<option value="${esc(k.name)}">`).join("")}</datalist></label>
+      <label>Phone / WhatsApp<input class="in" id="c_phone" type="tel" value="${esc(r.phone)}" ${issued?"disabled":""}></label>
+      <label>Paid into<select class="in" id="c_account" ${issued?"disabled":""}>${[...S.settings.accounts.map(a=>a.name), OWNER].map(a=>`<option ${a===r.account?"selected":""}>${esc(a)}</option>`).join("")}</select></label>
+      <div class="items-edit"><div class="note">Items</div>${r.items.map((it,k)=>`<div class="ln"><select class="in" data-cit="${k}" ${issued?"disabled":""}><option value="">— choose item —</option>${C.menuList.map(m=>`<option value="${esc(m.name)}" ${!it.custom&&m.name===it.item?"selected":""}>${esc(m.name)} — ${m.price}</option>`).join("")}<option value="__custom" ${it.custom?"selected":""}>✎ Custom item…</option></select><input class="in" type="number" min="1" data-ciq="${k}" value="${it.qty||1}" ${issued?"disabled":""}><button class="x" type="button" data-cix="${k}" ${issued?"disabled":""}>✕</button></div>${it.custom?`<div class="ln cust"><input class="in" data-cin="${k}" placeholder="Custom item name" value="${esc(it.name||"")}" ${issued?"disabled":""}><input class="in" type="number" step="any" min="0" inputmode="decimal" data-cip="${k}" placeholder="Price SAR" value="${it.price?esc(it.price):""}" ${issued?"disabled":""}><span class="note" style="align-self:center">SAR</span></div>`:""}`).join("")}${issued?"":`<div><button class="btn sec" type="button" id="cAdd">+ item</button></div>`}</div>
+      <label class="wide" style="flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-size:14px"><input type="checkbox" id="c_delivery" ${r.delivery!==false?"checked":""} ${issued?"disabled":""}> Delivery (${fmt0(C.DF)} SAR, no VAT) — untick for pickup</label>
+      <label>Time (optional)<input class="in" id="c_time" type="time" value="${esc(r.time||"")}" ${issued?"disabled":""}></label>
+      <label>Occasion (optional)<select class="in" id="c_occasion" ${issued?"disabled":""}>${["","Eid","Ramadan","Birthday","Corporate","Gift","Wedding / engagement","National Day","Other"].map(o=>`<option ${o===(r.occasion||"")?"selected":""}>${o}</option>`).join("")}</select></label>
+      <label class="wide">Note on receipt (optional)<input class="in" id="c_notes" value="${esc(r.notes)}" ${issued?"disabled":""}></label>
+      <label class="wide">Payment link for this customer (optional)<input class="in" id="c_payLink" type="url" inputmode="url" placeholder="https://…" value="${esc(r.payLink||"")}"></label>
+      <div class="wide row" style="margin-top:4px">${issued? (canW()?`<button class="btn sec" type="button" id="cSavePay">Save link</button>`:"") : (canW()?`<button class="btn" type="submit">Save & number</button>`:"")}<button class="btn sec" type="button" id="cPng" ${issued?"":"disabled"}>⬇ PNG</button><button class="btn sec" type="button" id="cPdf" ${issued?"":"disabled"}>⬇ PDF</button><button class="btn sec" type="button" id="cLink" ${issued?"":"disabled"}>🔗 Customer link</button><button class="btn sec" type="button" id="cMsg" ${issued?"":"disabled"}>WhatsApp message</button><span style="flex:1"></span><button class="btn sec" type="button" id="cNew">New sale</button></div>
+      ${issued? `<p class="note wide">Recorded as order ${esc(r.receiptNo)} on the Orders tab. To change it, edit it there.</p>` : `<p class="note wide">Save first to get a receipt number; downloads and links unlock after that.</p>`}
+    </form></div>
+    <div style="position:sticky;top:calc(env(safe-area-inset-top,0px) + 90px)"><canvas id="rc" style="width:100%;height:auto;display:block;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.18);background:#fff"></canvas>
+      <div class="kv" style="margin-top:10px;font-variant-numeric:tabular-nums"><span>Total before VAT</span><b style="text-align:right">${f2(R.net)}</b><span>VAT ${Math.round(R.rate*100)}%</span><b style="text-align:right">${f2(R.vat)}</b><span>Delivery</span><b style="text-align:right">${f2(R.fee)}</b><span>Total</span><b style="text-align:right">SAR ${f2(R.total)}</b></div></div></div>`; },
+dash(){ const D=C.dash, X=C.dx, t=D.tot, b=C.bs(D.to+"-31"); const losing = C.menuList.filter(m=>m.status==="loses").length, below = C.menuList.filter(m=>m.status==="below").length;
+  const be = (()=>{ const cm = t.rev? t.conPct : (C.menuList.length? C.menuList.reduce((a,m)=>a+(m.margin||0),0)/C.menuList.length:0); const fixed = t.opxT/t.monthsActive; return cm>0? fixed/cm : null; })();
+  const top = (()=>{ const c={}; C.orders.filter(o=>o.m>=D.from && o.m<=D.to).forEach(o=>o.items.forEach(i=>{ if(!i.custom) c[i.item]=(c[i.item]||0)+(N(i.qty)||1); })); const e = Object.entries(c).sort((a,b)=>b[1]-a[1])[0]; return e? {name:e[0], units:e[1]} : null; })();
+  const life = D.scope==="all"; const lbls = D.months.map((m,i)=> (D.months.length>18 && i%2) ? "" : m.label);
+  return `<div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><h2 style="font-size:22px;margin:0">Dashboard</h2><span style="flex:1"></span><div class="seg">${[["all","Lifetime"],...D.fyYears.map(y=>[String(y),"FY "+y])].map(([k,l])=>`<button type="button" class="${String(D.scope)===k?"on":""}" data-scope="${k}">${l}</button>`).join("")}</div></div>
+  <p class="sub">${life? `Lifetime: ${D.from} → ${D.to}, all sales since day one.` : `Financial year ${D.from} → ${D.to}.`} Everything here updates as you log orders and expenses.</p>
+  ${X.alerts.length? `<div class="alerts">${X.alerts.map(a=>`<button type="button" class="${a.k}" data-go="${a.tab}">${a.k==="bad"?"⛔":a.k==="warn"?"⚠":"ℹ"} ${esc(a.t)}</button>`).join("")}</div>` : `<div class="alerts"><button type="button" class="ok" disabled>✓ No alerts</button></div>`}
+  <div class="cards">${[["Net revenue (SAR)",fmt0(t.rev)],["Orders",int(t.orders)],["Contribution (SAR)",fmt0(t.con)],["Contribution margin",pct(t.conPct)],["Net profit (SAR)",fmt0(t.np)],["Avg order value",fmt0(t.aov)],[life?"Cash today":"Cash at year end",fmt0(b.accts.reduce((a,x)=>a+x.bal,0))],["Top item",top&&top.units? esc(top.name):"–"]].map(([l,v])=>`<div class="card"><div class="l">${l}</div><div class="v ${v.length>9?"small":""}">${v}</div></div>`).join("")}</div>
+  <div class="panel"><h2>Momentum</h2><div class="tw"><table>${th(["Period","#Net revenue","#Orders","#Avg order","#Change",""])}
+    ${X.periods.map((p,i)=>`<tr>${td(esc(p.label))}${n0(p.cur.rev)}${ni(p.cur.orders)}${n0(p.cur.aov)}${td(p.chg==null?"–":`<span class="${p.chg<0?"bad":"ok"}">${p.chg>=0?"+":""}${pct(p.chg)}</span>`,"n")}${td(`<span class="note">${esc(p.vs)}${i===0&&p.chgLY!=null?` · ${p.chgLY>=0?"+":""}${pct(p.chgLY)} vs last year`:""}</span>`)}</tr>`).join("")}</table></div>
+    ${X.goal.goal? `<div style="margin-top:10px"><div class="row" style="justify-content:space-between;font-size:13px"><span>Month-to-date vs target: <b>${fmt0(X.goal.mtd)}</b> of ${fmt0(X.goal.goal)} (${pct(X.goal.pct)})</span><span class="note">day ${X.goal.dom}/${X.goal.dim} · on pace would be ${fmt0(X.goal.pace)} · ${fmt0(X.goal.left)} to go in ${X.goal.daysLeft} days</span></div><div class="goalbar" style="margin-top:4px"><i style="width:${Math.min(100,Math.round((X.goal.pct||0)*100))}%"></i><s style="left:${Math.round(X.goal.dom/X.goal.dim*100)}%"></s></div></div>` : `<p class="note" style="margin-top:8px">Set a revenue target for ${nowKey()} on the Goals tab to see month-to-date progress here.</p>`}</div>
+  <div class="grid2"><div class="panel"><h2>Net revenue vs net profit${life?" — by month":""}</h2>${barChart([D.pl.map(r=>r.rev),D.pl.map(r=>r.np)],lbls,["var(--olive-2)","var(--gold)"])}<p class="note">Olive: net revenue · Gold: net profit</p></div>
+  <div class="panel"><h2>Health checks</h2><div class="kv">
+    <span>Owed by customers</span><b>${fmt0(b.recv)}</b><span>VAT owed to ZATCA</span><b>${fmt0(b.vatL)}</b><span>Menu items losing money</span><b class="${losing?"bad":""}">${losing}</b><span>Menu items below target margin</span><b class="${below?"warn":""}">${below}</b>
+    <span>Break-even revenue / month</span><b>${be? fmt0(be):"n/a"}</b><span>Balance sheet</span><b class="${b.check===0?"ok":"bad"}">${b.check===0?"✓ Balanced":"⚠ Out of balance ("+fmt2(b.check)+")"}</b>
+    <span>Next ZATCA deadline</span><b>${(()=>{ const d = C.deadlines.find(x=>!x.done); return d ? `${esc(d.what)} ${esc(d.period)} · ${d.due}${d.days<0?" <span class='bad'>(overdue)</span>":""}` : "–"; })()}</b><span>Orders missing an account</span><b>${C.orders.filter(o=>!o.account).length}</b><span>Wastage & variance (${life?"lifetime":"year"})</span><b>${fmt0(t.vari)}</b></div></div></div>
+  <div class="grid2"><div class="panel"><h2>Sales by weekday</h2>${hbars(X.wd, x=>x.rev)}<p class="note">Net revenue per weekday (totals for this view${X.n?`, ${X.n} orders`:""}). Sat–Mon are your strongest days if the bars say so — plan bake days around them.</p></div>
+  <div class="panel"><h2>Contribution margin by month</h2>${barChart([D.pl.map(r=>(r.conPct||0)*100)], lbls, ["var(--olive-2)"])}<p class="note">Contribution % of net revenue. A falling line usually means ingredient prices moved or the mix shifted to low-margin items.</p></div></div>
+  <div class="grid2"><div class="panel"><h2>Customers</h2><div class="mini"><div class="card"><div class="l">Repeat rate</div><div class="v">${X.repeatRate==null?"–":pct(X.repeatRate)}</div></div><div class="card"><div class="l">Unique customers</div><div class="v">${int(X.uniq)}</div></div><div class="card"><div class="l">Delivered</div><div class="v">${X.delivery.share==null?"–":pct(X.delivery.share)}</div></div><div class="card"><div class="l">Delivery net (fees − cost)</div><div class="v ${X.delivery.net<0?"neg":""}">${fmt0(X.delivery.net)}</div></div></div>
+    <h3 style="margin:12px 0 4px;font-size:14px">New vs returning orders</h3>${stackChart(X.newRet.map(x=>x.ret), X.newRet.map(x=>x.nw), lbls, ["var(--olive-2)","var(--gold)"])}<p class="note">Olive: returning customers · Gold: first-time customers. Repeat rate = share of orders from someone who had ordered before.</p></div>
+  <div class="panel"><h2>Top customers</h2>${X.topCust.length? hbars(X.topCust, x=>x.rev) : `<p class="note">No named customers yet.</p>`}<p class="note">Spend incl. VAT in this view.</p>
+    <h3 style="margin:14px 0 4px;font-size:14px">Gone quiet (45+ days, 2+ orders)</h3>${X.quiet.length? `<div class="tw"><table>${th(["Customer","Last order","#Days","#Orders","#Spent"])}${X.quiet.map(c=>`<tr ${c.id?`data-edit="customers:${c.id}" style="cursor:pointer"`:""}>${td(esc(c.name))}${td(c.last)}${ni(c.days)}${ni(c.n)}${n0(c.spent)}</tr>`).join("")}</table></div>` : `<p class="note">Nobody — all regulars have ordered recently.</p>`}</div></div>
+  <div class="grid2"><div class="panel"><h2>Product mix by range</h2>${X.mixList.length? hbars(X.mixList, x=>x.rev) : `<p class="note">No sales in this view.</p>`}<p class="note">Net revenue (ex-VAT) by range.</p>${X.occList.length? `<h3 style="margin:14px 0 4px;font-size:14px">By occasion</h3>${hbars(X.occList, x=>x.rev)}` : `<p class="note">Tag orders with an occasion (Eid, Ramadan, corporate…) in the Cashier or order form and the split appears here.</p>`}</div>
+  <div class="panel"><h2>Top items by contribution</h2>${X.topCon.length? hbars(X.topCon, x=>x.con) : `<p class="note">No sales in this view.</p>`}${X.worstCon.length? `<h3 style="margin:14px 0 4px;font-size:14px;color:var(--red)">Losing money</h3>${hbars(X.worstCon, x=>x.con)}`:""}<p class="note">Units × contribution per unit (price ex-VAT − ingredients − packaging). Custom items count at full price.</p></div></div>
+  <div class="grid2"><div class="panel"><h2>Loaves per week (last 12 weeks)</h2>${barChart([X.weeks.map(w=>w.loaves)], X.weeks.map(w=>w.label), ["var(--olive-2)"])}<p class="note">Focaccia loaves sold per week (weeks start Sunday). Kitchen capacity is set on the Wastage tab.</p></div>
+  <div class="panel"><h2>When orders come in</h2>${heatTable(X.heat)}<p class="note">${esc(X.heat.note)}</p></div></div>
+  <div class="panel"><h2>Cash position today</h2><div class="mini"><div class="card"><div class="l">In the bank & till</div><div class="v">${fmt0(X.cash.cashNow)}</div></div><div class="card"><div class="l">VAT owed to ZATCA</div><div class="v neg">−${fmt0(X.cash.vatOwed)}</div></div><div class="card"><div class="l">Zakat accrued (est.)</div><div class="v neg">−${fmt0(X.cash.zakAcc)}</div></div><div class="card" style="border-color:var(--olive-2)"><div class="l">Actually yours</div><div class="v ${X.cash.yours<0?"neg":""}">${fmt0(X.cash.yours)}</div></div><div class="card"><div class="l">Owed by customers</div><div class="v">${fmt0(X.cash.recv)}</div></div></div><p class="note">${X.cash.accts.map(a=>esc(a.name)+" "+fmt0(a.bal)).join(" · ")}. Money set aside for VAT and Zakat isn't yours to spend.</p></div>
+  ${life? `<div class="panel"><h2>Annual performance</h2><div class="tw"><table>${th(["Year","#Net revenue","#Growth","#Contribution","#Contrib %","#OpEx","#Net profit","#Net margin","#Orders","#Units","#Avg order","#Cash at year end"])}
+  ${D.byYear.map((r,i)=>`<tr>${td(r.label)}${n0(r.rev)}${td(i&&D.byYear[i-1].rev? pct(r.rev/D.byYear[i-1].rev-1):"–","n")}${n0(r.con)}${np(r.conPct)}${n0(r.opxT)}${n0(r.np)}${np(r.npPct)}${ni(r.orders)}${ni(r.units)}${n0(r.aov)}${n0(r.close)}</tr>`).join("")}
+  <tr class="tot">${td("LIFETIME")}${n0(t.rev)}${td("–","n")}${n0(t.con)}${np(t.conPct)}${n0(t.opxT)}${n0(t.np)}${np(t.npPct)}${ni(t.orders)}${ni(t.units)}${n0(t.aov)}${n0(t.close)}</tr></table></div></div>`:""}
+  <div class="panel"><h2>Monthly performance</h2><div class="tw"><table>${th(["Month","#Target","#Net revenue","#vs target","#Contribution","#Contrib %","#OpEx","#Net profit","#Net margin","#Orders","#Avg order","#Cash at month end"])}
+  ${D.pl.filter(r=>!life || r.rev || r.orders || r.opxT || r.key>=C.months[0].key).map(r=>`<tr>${td(r.label)}${n0(r.goal)}${n0(r.rev)}${td(r.goal? pct(r.rev/r.goal):"–","n "+(r.goal&&r.rev<r.goal?"neg":""))}${n0(r.con)}${np(r.conPct)}${n0(r.opxT)}${n0(r.np)}${np(r.npPct)}${ni(r.orders)}${n0(r.aov)}${n0(r.close)}</tr>`).join("")}
+  <tr class="tot">${td("TOTAL")}${n0(t.goal)}${n0(t.rev)}${td(t.goal?pct(t.rev/t.goal):"–","n")}${n0(t.con)}${np(t.conPct)}${n0(t.opxT)}${n0(t.np)}${np(t.npPct)}${ni(t.orders)}${n0(t.aov)}${n0(t.close)}</tr></table></div></div>`; },
+
+orders(){ const q = (S.q||"").toLowerCase(); const list = C.orders.filter(o=>!q || JSON.stringify(o).toLowerCase().includes(q));
+  return `<div class="row"><h2 style="font-size:22px">Order tracker</h2><span class="grow"></span><input id="q" placeholder="Search customer, item, date…" value="${esc(S.q||"")}"> ${canW()?`<button class="btn" data-act="newOrder">+ New order</button>`:""}</div>
+  <p class="sub">One row per order. Price, VAT, ingredient cost and contribution come from Menu & Pricing and Recipes; delivery is ${fmt0(C.DF)} SAR charged / ${fmt0(C.DC)} SAR cost unless marked pickup. Click a row to edit.</p>
+  <div class="tw"><table>${th(["Date","Customer","Phone","Items","#Units","#Subtotal ex-VAT","#VAT","#Total","Paid into","#Ingredients","#Packaging","#Delivery cost","#Contribution","#Contrib %","Receipt",""])}
+  ${list.length? list.map(o=>`<tr data-edit="orders:${o.id}" style="cursor:pointer">${td(esc(o.date))}${td(esc(o.customer||""))}${td(esc(o.phone||""))}${td(esc(o.items.map(i=>(N(i.qty)>1?i.qty+"× ":"")+i.label+(i.custom?" (custom)":"")).join(", ")))}${ni(o.units)}${n2(o.net)}${n2(o.vat)}${td("<b>"+fmt2(o.total)+"</b>","n")}${td(esc(o.account||"<span class='bad'>missing</span>"))}${n2(o.ing)}${n2(o.pkg)}${n2(o.delCost)}${td("<b>"+fmt2(o.con)+"</b>","n"+(o.con<0?" neg":""))}${np(o.conPct)}${td(`<button class="btn sec" style="padding:2px 8px" data-receipt="${o.id}" type="button" title="Receipt">🧾${o.receiptNo? " "+esc(o.receiptNo):""}</button>`)}${td(canW()?`<button class="x" data-del="orders:${o.id}" title="Delete">✕</button>`:"")}</tr>`).join("") : `<tr><td colspan="16" class="empty">No orders yet. Add your first order with the button above.</td></tr>`}
+  <tr class="tot">${td("TOTALS")}${td(list.length+" orders")}${td("")}${td("")}${ni(list.reduce((a,o)=>a+o.units,0))}${n0(list.reduce((a,o)=>a+o.net,0))}${n0(list.reduce((a,o)=>a+o.vat,0))}${n0(list.reduce((a,o)=>a+o.total,0))}${td("")}${n0(list.reduce((a,o)=>a+o.ing,0))}${n0(list.reduce((a,o)=>a+o.pkg,0))}${n0(list.reduce((a,o)=>a+o.delCost,0))}${n0(list.reduce((a,o)=>a+o.con,0))}${td("")}${td("")}${td("")}</tr></table></div>`; },
+
+expenses(){ const list = C.expenses;
+  return `<div class="row"><h2 style="font-size:22px">Expenses & money log</h2><span class="grow"></span>${canW()?`<button class="btn" data-act="newExpense">+ New entry</button>`:""}</div>
+  <p class="sub">Every payment that isn't a customer order. Amounts include VAT; the VAT and net split is worked out from the category. Click a row to edit, 📎 to see the bill.</p>
+  <div class="tw"><table>${th(["Date","Supplier / party","Category","#Amount incl. VAT","#VAT","#Net of VAT","Paid from","Bill",""])}
+  ${list.length? list.map(e=>`<tr data-edit="expenses:${e.id}" style="cursor:pointer${e.review?";background:color-mix(in srgb,var(--orange) 10%,transparent)":""}">${td(esc(e.date))}${td(esc(e.party||"")+(e.notes?`<div class="note" style="font-size:11px;max-width:320px;white-space:normal">${esc(e.notes)}</div>`:""))}${td(esc(e.cat||"<span class='bad'>missing</span>"))}${td((e.gross<0?"":"<span class='ok'>+</span>")+fmt2(Math.abs(e.gross)),"n")}${n2(Math.abs(e.vat))}${n2(Math.abs(e.net))}${td(esc(e.account||"<span class='bad'>missing</span>"))}${td(e.hasBill?`<button class="btn sec" style="padding:2px 8px" data-bill="${e.id}" type="button">📎</button>`:"–")}${td(canW()?`<button class="x" data-del="expenses:${e.id}">✕</button>`:"")}</tr>`).join("") : `<tr><td colspan="9" class="empty">Nothing logged yet.</td></tr>`}
+  <tr class="tot">${td("TOTALS")}${td(list.length+" entries")}${td("")}${n0(list.reduce((a,e)=>a+N(e.out),0))}${n0(-list.reduce((a,e)=>a+(e.gross<0?e.vat:0),0))}${n0(-list.reduce((a,e)=>a+(e.gross<0?e.net:0),0))}${td("")}${td("")}${td("")}</tr></table></div><p class="note">Totals are money paid out. Entries marked + are money received (capital, loans, refunds).</p>`; },
+
+daily(){ const mk = S.dailyM || C.months.find(m=>m.key===today().slice(0,7))?.key || C.months[0].key; const rows = C.daily.filter(d=>d.key.startsWith(mk)); const sum = k => rows.reduce((a,d)=>a+d[k],0);
+  return `<div class="row"><h2 style="font-size:22px">Daily log</h2><select id="dailyM">${C.months.map(m=>`<option value="${m.key}" ${m.key===mk?"selected":""}>${m.label}</option>`).join("")}</select></div>
+  <p class="sub">Every day of the month, from the orders you logged. Fixed costs = that month's operating expenses spread evenly across its days.</p>
+  <div class="tw"><table>${th(["Date","Day","#Orders","#Units","#Loaves","#Net revenue","#Discounts","#Ingredients","#Packaging","#Delivery","#Contribution","#Contrib %","#Fixed (daily)","#Daily profit","#Month to date"])}
+  ${rows.map(d=>`<tr style="${d.rev?"background:color-mix(in srgb,var(--sage) 35%,transparent)":""}">${td(d.key)}${td(d.dow)}${ni(d.orders)}${ni(d.units)}${ni(d.loaves)}${n0(d.rev)}${n0(d.disc)}${n0(d.ing)}${n0(d.pkg)}${n0(d.del)}${n0(d.con)}${np(d.conPct)}${n0(d.fixed)}${td("<b>"+fmt0(d.profit)+"</b>","n"+(d.profit<0?" neg":""))}${n0(d.mtd)}</tr>`).join("")}
+  <tr class="tot">${td("MONTH")}${td("")}${ni(sum("orders"))}${ni(sum("units"))}${ni(sum("loaves"))}${n0(sum("rev"))}${n0(sum("disc"))}${n0(sum("ing"))}${n0(sum("pkg"))}${n0(sum("del"))}${n0(sum("con"))}${np(sum("rev")?sum("con")/sum("rev"):null)}${n0(sum("fixed"))}${n0(sum("profit"))}${td("")}</tr></table></div>`; },
+
+monthly(){ const t=C.tot; return `<h2 style="font-size:22px">Monthly summary</h2><p class="sub">One row per month, from orders, expenses and goals.</p>
+  <div class="tw"><table>${th(["Month","#Orders","#Units","#Loaves","#Net revenue","#Discounts","#Variable costs","#Contribution","#Contrib %","#Wastage & variance","#OpEx","#Net profit","#Net margin","#Avg order","#Best day","#Worst day","#Goal","#vs goal"])}
+  ${C.pl.map(r=>{ const ds = C.daily.filter(d=>d.key.startsWith(r.key)&&d.rev>0).map(d=>d.rev); return `<tr>${td(r.label)}${ni(r.orders)}${ni(r.units)}${ni(r.loaves)}${n0(r.rev)}${n0(-r.disc)}${n0(r.vc)}${n0(r.con)}${np(r.conPct)}${n0(r.vari)}${n0(r.opxT)}${td("<b>"+fmt0(r.np)+"</b>","n"+(r.np<0?" neg":""))}${np(r.npPct)}${n0(r.aov)}${n0(ds.length?Math.max(...ds):0)}${n0(ds.length?Math.min(...ds):0)}${n0(r.goal)}${np(r.goal?r.rev/r.goal:null)}</tr>`; }).join("")}
+  <tr class="tot">${td("YEAR")}${ni(t.orders)}${ni(t.units)}${ni(t.loaves)}${n0(t.rev)}${n0(-t.disc)}${n0(t.vc)}${n0(t.con)}${np(t.conPct)}${n0(t.vari)}${n0(t.opxT)}${n0(t.np)}${np(t.npPct)}${n0(t.aov)}${td("")}${td("")}${n0(t.goal)}${np(t.goal?t.rev/t.goal:null)}</tr></table></div>
+  <div class="panel" style="margin-top:16px"><h2>Units sold by item</h2><div class="tw"><table>${monthHdr("Item")}${C.items.map(i=>`<tr>${td(esc(i.name))}${i.per.map(ni).join("")}${td("<b>"+int(i.units)+"</b>","n")}</tr>`).join("")}</table></div></div>`; },
+
+yearly(){ const Y=C.years; const rows=[["Orders",y=>int(y.orders)],["Units sold",y=>int(y.units)],["Loaves sold",y=>int(y.loaves)],["Net revenue",y=>fmt0(y.rev),1],["Revenue growth",y=>pct(y.growth)],["Variable costs",y=>fmt0(y.vc)],["Contribution",y=>fmt0(y.con),1],["Contribution margin",y=>pct(y.conPct)],["Wastage & variance",y=>fmt0(y.vari)],["Operating expenses",y=>fmt0(y.opx)],["Net profit",y=>fmt0(y.np),1],["Net margin",y=>pct(y.npPct)],["Avg order value",y=>fmt0(y.aov)],["Avg monthly revenue",y=>fmt0(y.rev/12)]];
+  const t=C.tot, top=[...C.items].sort((a,b)=>b.units-a.units)[0], best=[...C.pl].sort((a,b)=>b.rev-a.rev)[0];
+  return `<h2 style="font-size:22px">Yearly overview</h2><p class="sub">This financial year's KPIs, then year on year.</p>
+  <div class="cards">${[["Total orders",int(t.orders)],["Units sold",int(t.units)],["Net revenue",fmt0(t.rev)],["Contribution",fmt0(t.con)],["Contribution margin",pct(t.conPct)],["Net profit",fmt0(t.np)],["Net margin",pct(t.npPct)],["Avg order value",fmt0(t.aov)],["Avg monthly revenue",fmt0(t.rev/C.monthsActive)],["Best month",best&&best.rev?best.label:"–"],["Top selling item",top&&top.units?esc(top.name):"–"],["Wastage & variance",fmt0(t.vari)]].map(([l,v])=>`<div class="card"><div class="l">${l}</div><div class="v ${String(v).length>9?"small":""}">${v}</div></div>`).join("")}</div>
+  <div class="tw"><table>${th(["Metric",...Y.map(y=>"#"+y.label)])}${rows.map(([l,f,b])=>`<tr class="${b?"tot":""}">${td(l)}${Y.map(y=>td(f(y),"n")).join("")}</tr>`).join("")}</table></div>`; },
+
+items(){ return `<div class="row"><h2 style="font-size:22px">Item sales tracker</h2><span class="grow"></span>${canW()?`<button class="btn sec" data-act="addMenu">+ Add item</button>`:""}</div><p class="sub">Units per item per month (a box counts as one unit). Items are added and priced on the Menu &amp; Pricing tab — the button takes you there.</p>
+  <div class="tw"><table>${th(["Range","Item","#Price ex-VAT",...C.months.map(m=>"#"+m.label),"#Total units","#Net sales","#Est. contribution","#Rank"])}
+  ${C.items.map(i=>`<tr>${td(esc(i.range||""))}${td(esc(i.name))}${n2(i.priceEx)}${i.per.map(ni).join("")}${td("<b>"+int(i.units)+"</b>","n")}${n0(i.sales)}${n0(i.est)}${td(i.rank? (i.rank<=3?`<span class="pill ok">#${i.rank}</span>`:"#"+i.rank):"–","n")}</tr>`).join("")}
+  <tr class="tot">${td("TOTALS")}${td("")}${td("")}${C.months.map((m,k)=>ni(C.items.reduce((a,i)=>a+i.per[k],0))).join("")}${ni(C.items.reduce((a,i)=>a+i.units,0))}${n0(C.items.reduce((a,i)=>a+i.sales,0))}${n0(C.items.reduce((a,i)=>a+i.est,0))}${td("")}</tr></table></div>`; },
+
+pl(){ const t=C.tot; const opx = Object.keys(C.pl[0].opx);
+  return `<h2 style="font-size:22px">P&L, cash flow & VAT</h2><p class="sub">Excluding VAT. Built from the orders, expenses and wastage you logged.</p>
+  <div class="panel"><h2>Profit & loss</h2><div class="tw"><table>${monthHdr("Line item")}
+  <tr class="sec">${td("Revenue")}${td("",`colspan="13"`)}</tr>${mrow("Focaccia sales",r=>r.foc)}${mrow("Pantry sales",r=>r.pan)}${mrow("Gathering box sales",r=>r.box)}${mrow("Other sales",r=>r.oth)}${mrow("Less: discounts",r=>r.disc)}${mrow("Delivery fees charged",r=>r.fee)}${mrow("Net revenue",r=>r.rev,"tot")}
+  <tr class="sec">${td("Variable costs (per recipe, for what you sold)")}${td("",`colspan="13"`)}</tr>${mrow("Ingredient costs",r=>r.ing)}${mrow("Packaging costs",r=>r.pkg)}${mrow("Delivery costs",r=>r.del)}${mrow("Total variable costs",r=>r.vc,"tot")}${mrow("CONTRIBUTION",r=>r.con,"key")}${mrow("Contribution margin %",r=>r.conPct,"",np,t=>t.conPct)}
+  <tr class="sec">${td("Wastage & purchase variance")}${td("",`colspan="13"`)}</tr>${mrow("Ingredients actually bought",r=>r.ingB)}${mrow("Packaging actually bought",r=>r.pkgB)}${mrow("Variance: bought − used per recipe",r=>r.vari,"tot")}${mrow("memo: wastage logged",r=>r.waste)}${mrow("GROSS PROFIT",r=>r.gp,"key")}${mrow("Gross margin %",r=>r.gpPct,"",np,t=>t.gpPct)}
+  <tr class="sec">${td("Operating expenses")}${td("",`colspan="13"`)}</tr>${opx.map(k=>mrow(esc(k),r=>r.opx[k])).join("")}${mrow("Total OpEx",r=>r.opxT,"tot")}${mrow("NET PROFIT",r=>r.np,"key")}${mrow("Net margin %",r=>r.npPct,"",np,t=>t.npPct)}
+  </table></div><p class="note">Positive variance = waste, over-portioning, or stock bought ahead. Labour and overhead are not inside recipe costs; log what you pay in Expenses.</p></div>
+  <div class="panel"><h2>Cash flow (VAT included, real money)</h2><div class="tw"><table>${monthHdr("")}${mrow("Opening cash",r=>r.open,"tot",n0,t=>t.open)}${mrow("Cash received from customers",r=>r.cashIn)}${mrow("Delivery costs paid",r=>r.cashDel)}${mrow("Purchases & bills paid",r=>r.cashBills)}${mrow("VAT paid to ZATCA",r=>r.cashVat)}${mrow("Equipment bought",r=>r.cashEq)}${mrow("Owner in / (out), loans & transfers",r=>r.cashFin)}${mrow("Net cash flow",r=>r.ncf,"tot")}${mrow("CLOSING CASH",r=>r.close,"key",n0,t=>t.close)}</table></div></div>
+  <div class="panel"><h2>VAT summary (monthly)</h2><div class="tw"><table>${monthHdr("")}${mrow("VAT charged to customers",r=>r.vatOut)}${mrow("VAT paid on purchases",r=>r.vatIn)}${mrow("NET VAT PAYABLE",r=>r.vatNet,"key")}</table></div></div>`; },
+
+bs(){ const asAt = S.bsDate || (C.fyEndKey+"-"+new Date(Date.UTC(parseInt(C.fyEndKey.slice(0,4)),parseInt(C.fyEndKey.slice(5,7)),0)).getUTCDate()); const b=C.bs(asAt);
+  const r = (l,v,k="") => `<tr class="${k}">${td(l)}${n2(v)}</tr>`;
+  return `<div class="row"><h2 style="font-size:22px">Balance sheet</h2><label>As at <input type="date" id="bsDate" value="${asAt}"></label></div><p class="sub">What the business owns and owes on that date.</p>
+  <div class="panel" style="max-width:640px"><div class="tw"><table><tr class="sec"><td colspan="2">Assets</td></tr>${b.accts.map(a=>r(esc(a.name),a.bal)).join("")}${r("Owed by customers (unpaid / partial)",b.recv)}${r("Equipment (at cost)",b.equip)}${r("Transfers in transit (should be zero)",b.transit)}${r("TOTAL ASSETS",b.ta,"tot")}
+  <tr class="sec"><td colspan="2">Liabilities</td></tr>${r("VAT owed to / (due from) ZATCA",b.vatL)}${r("Loans outstanding",b.loans)}${r("TOTAL LIABILITIES",b.tl,"tot")}
+  <tr class="sec"><td colspan="2">Owner's equity</td></tr>${r("Opening balances",b.opening)}${r("Capital put in (incl. costs paid personally)",b.cap)}${r("Drawings taken",b.draw)}${r("Accumulated profit / (loss)",b.acc)}${r("TOTAL EQUITY",b.te,"tot")}${r("TOTAL LIABILITIES & EQUITY",b.tle,"key")}
+  <tr><td>Check</td><td class="n ${b.check===0?"ok":"bad"}"><b>${b.check===0?"✓ Balanced":"⚠ Out of balance "+fmt2(b.check)}</b></td></tr></table></div><p class="note">If it's out of balance, an order is missing its "paid into" account or an expense is missing a category or account.</p></div>`; },
+
+vat(){ const qs=[0,1,2,3].map(q=>{ const ms=C.pl.slice(q*3,q*3+3); const o={label:"Q"+(q+1),start:ms[0].key,end:ms[2].key, sales:ms.reduce((a,r)=>a+r.rev,0), out:ms.reduce((a,r)=>a+r.vatOut,0), inn:ms.reduce((a,r)=>a+r.vatIn,0)}; o.net=o.out-o.inn; o.paid=-C.expenses.filter(e=>e.type==="VAT"&&e.m>=o.start&&e.m<=o.end).reduce((a,e)=>a+e.net,0); return o; });
+  let cf=0; qs.forEach(q=>{ cf+=q.net-q.paid; q.cf=cf; });
+  const due = q => { const [y,m]=q.end.split("-").map(Number); const d=new Date(Date.UTC(y,m+1,0)); return d.toISOString().slice(0,10); };
+  const row=(l,f,k="")=>`<tr class="${k}">${td(l)}${qs.map(q=>n2(f(q))).join("")}${n2(qs.reduce((a,q)=>a+f(q),0))}</tr>`;
+  return `<h2 style="font-size:22px">VAT return helper</h2><p class="sub">Quarterly figures for ZATCA. Assumes quarterly filing, due the last day of the month after each quarter. Confirm with your accountant.</p>
+  <div class="panel" style="max-width:820px"><div class="tw"><table>${th(["","#Q1","#Q2","#Q3","#Q4","#Full year"])}<tr>${td("Period")}${qs.map(q=>td(q.start+" → "+q.end,"n")).join("")}${td("")}</tr><tr>${td("File & pay by")}${qs.map(q=>td(due(q),"n")).join("")}${td("")}</tr>
+  ${row("Sales (excl. VAT)",q=>q.sales)}${row("Output VAT charged",q=>q.out)}${row("Input VAT reclaimable",q=>q.inn)}${row("NET VAT DUE / (REFUNDABLE)",q=>q.net,"key")}${row("Paid to / (refunded by) ZATCA",q=>q.paid)}<tr class="tot">${td("Unpaid VAT carried forward")}${qs.map(q=>n2(q.cf)).join("")}${n2(cf)}</tr></table></div></div>`; },
+
+zakat(){ const Z = C.zakat, ZK = C.st.zakat; const r = (l,v,k="",extra="") => `<tr class="${k}">${td(l+(extra?` <span class="note">${extra}</span>`:""))}${n2(v)}</tr>`;
+  const ed = (l, key, hint) => `<tr>${td(l+(hint?` <span class="note">${hint}</span>`:""))}${td(canW()? inp("settings.zakat."+key, ZK[key]??"", "number") : fmt2(N(ZK[key])), "n")}</tr>`;
+  const badge = d => d.done ? `<span class="pill ok">✓ ${d.what==="VAT return"||d.what==="Zakat return" ? "Filed" : "Done"}${d.ref?" · "+esc(d.ref):""}</span>` : d.days<0 ? `<span class="pill bad">Overdue ${-d.days} d</span>` : d.days<=14 ? `<span class="pill warn">${d.days} days left</span>` : `<span class="pill">${d.days} days left</span>`;
+  const typeList = ["Zakat return","Zakat payment","Zakat certificate","VAT return","VAT payment","Licence / registration","Other ZATCA"];
+  return `<div class="row"><h2 style="font-size:22px">Zakat & ZATCA</h2><span class="grow"></span>${canW()?`<button class="btn" data-act="newFiling">+ Log filing / payment</button>`:""}</div>
+  <p class="sub">Zakat worked out from your own books, plus a log of every return, payment, certificate and licence with its paperwork attached. Blue cells are yours to edit.</p>
+  <div class="grid2" style="align-items:start"><div class="panel"><h2>Zakat calculation</h2>
+    <div class="row" style="margin-bottom:8px;gap:12px"><label>As at ${canW()?`<input type="date" class="in" data-k="settings.zakat.asAt" value="${esc(Z.asAt)}">`:esc(Z.asAt)}</label><label>Year basis ${canW()?`<select class="in" data-k="settings.zakat.basis"><option value="hijri" ${ZK.basis!=="gregorian"?"selected":""}>Hijri year — 2.5%</option><option value="gregorian" ${ZK.basis==="gregorian"?"selected":""}>Gregorian year — 2.5776%</option></select>`:(ZK.basis==="gregorian"?"Gregorian":"Hijri")}</label></div>
+    ${Z.hijri?`<p class="note" style="margin:0 0 8px">${esc(Z.asAt)} = ${esc(Z.hijri)}</p>`:""}
+    <div class="tw"><table><tr class="sec"><td colspan="2">Zakatable assets</td></tr>${Z.accts.map(a=>r(esc(a.name), Math.max(0,a.bal))).join("")}${r("Owed by customers", Z.recv)}${ed("Stock on hand at cost","stock","ingredients, packaging, finished goods")}${ed("Other zakatable assets","otherAssets","e.g. business savings elsewhere")}${r("Total zakatable assets", Z.assets, "tot")}
+    <tr class="sec"><td colspan="2">Less: amounts due within the year</td></tr>${r("VAT owed to ZATCA", Z.vatL)}${r("Loans outstanding", Z.loans)}${ed("Other payables","otherLiab","suppliers, rent due, etc.")}${r("Total deductions", Z.liab, "tot")}
+    <tr class="sec"><td colspan="2">Zakat</td></tr>${r("Zakat base", Z.base, "key")}${ed("Nisab (SAR)","nisab","value of 85 g gold; leave 0 to ignore")}${r("Rate", Z.rate*100, "", "%")}${r("Zakat due for the year", Z.due, "tot")}${r("Zakat already paid ("+Z.asAt.slice(0,4)+")", Z.paid)}<tr class="key"><td>Still to pay</td><td class="n ${Z.remaining>0?"warn":"ok"}"><b>${fmt2(Z.remaining)}</b></td></tr></table></div>
+    <p class="note">Cash, receivables, VAT and loans come straight from the Balance Sheet as at that date. Enter stock and anything the books don't hold. ${Z.nisab && Z.base<Z.nisab?"<b>Base is below the nisab, so no Zakat is due.</b>":""} This is a working estimate for a sole trader; what ZATCA assesses on a filed return can differ.</p></div>
+  <div class="panel"><h2>Deadlines</h2><div class="tw"><table>${th(["What","Period","Due","Status"])}${C.deadlines.length? C.deadlines.map(d=>`<tr ${d.logged?`data-edit="filings:${d.id}" style="cursor:pointer"`:""}>${td(esc(d.what))}${td(esc(d.period))}${td(d.due)}${td(badge(d))}</tr>`).join("") : `<tr><td colspan="4" class="note">Nothing upcoming.</td></tr>`}</table></div>
+    <p class="note">VAT returns: quarterly, due by the end of the month after the quarter. Zakat return: within 120 days of the financial year end (${C.fyEndKey} month end). A deadline shows as filed once a filing of that type and period is logged below with a status other than Due. Check ZATCA's portal for your exact filing frequency.</p></div></div>
+  <div class="panel" style="margin-top:16px"><h2>Filings, payments & certificates</h2><div class="tw"><table>${th(["Date","Type","Period","#Amount","Reference / certificate no.","Status","Due","Notes","Doc"])}
+  ${C.filings.length? C.filings.map(f=>`<tr data-edit="filings:${f.id}" style="cursor:pointer">${td(esc(f.date||""))}${td(esc(f.type||""))}${td(esc(f.period||""))}${n2(N(f.amount))}${td(esc(f.ref||""))}${td(f.status==="Due"?`<span class="pill warn">Due</span>`:`<span class="pill ok">${esc(f.status||"")}</span>`)}${td(esc(f.due||""))}${td(esc(f.notes||""))}${td(f.hasBill?`<button class="x" data-bill="${f.id}" title="View document">📎</button>`:"")}</tr>`).join("") : `<tr><td colspan="9" class="note">Nothing logged yet. Use “+ Log filing / payment” for Zakat returns, Zakat payments, certificates, VAT returns and licence renewals — attach a photo of the paperwork to each.</td></tr>`}</table></div>
+  <p class="note">Types: ${typeList.join(" · ")}. A Zakat or VAT payment can also be written to the Expenses log as money out, so your cash and balance sheet stay right (Zakat is treated as owner's drawings, not a business cost).</p></div>`; },
+customers(){ const list = C.custs; return `<div class="row"><h2 style="font-size:22px">Customers</h2><span class="grow"></span>${canW()?`<button class="btn" data-act="newCustomer">+ Add customer</button>`:""}</div>
+  <p class="sub">Add each customer once with the same name you use on orders; their history fills in. Orange = 45+ days since their last order, worth a WhatsApp check-in.</p>
+  <div class="tw"><table>${th(["Customer","Phone","Area","First order","Last order","#Days since","#Orders","#Spent incl. VAT","#Avg order","Favourite item","Occasion","Tags",""])}
+  ${list.length? list.map(c=>`<tr data-edit="customers:${c.id}" style="cursor:pointer">${td("<b>"+esc(c.name)+"</b>")}${td(esc(c.phone||""))}${td(esc(c.area||""))}${td(c.first)}${td(c.last)}${td(c.days==null?"–":`<span class="${c.days>45?"warn":""}">${c.days}</span>`,"n")}${ni(c.n)}${n0(c.spent)}${n0(c.aov)}${td(esc(c.fav))}${td(esc(c.occasion||""))}${td(esc(c.tags||""))}${td(canW()?`<button class="x" data-del="customers:${c.id}">✕</button>`:"")}</tr>`).join("") : `<tr><td colspan="13" class="empty">No customers yet.</td></tr>`}</table></div>`; },
+
+menu(){ const t=C.tot; const fixedAvg = t.opxT/C.monthsActive; const cm = t.rev? t.conPct : (C.menuList.length? C.menuList.reduce((a,m)=>a+(m.margin||0),0)/C.menuList.length:0); const be = cm>0? fixedAvg/cm:null; const perDay = be? be/N(C.st.sellingDays):null; const aov = t.aov;
+  return `<div class="row"><h2 style="font-size:22px">Menu, pricing & break-even</h2><span class="grow"></span>${canW()?`<button class="btn sec" data-act="addMenu">+ Add item</button>`:""}</div><p class="sub">Menu prices feed the orders. Costs come from Recipes and Boxes. Blue cells are yours to edit.</p>
+  <div class="tw"><table>${th(["Range","Group","Item","#Menu price","#Price ex-VAT","#Price incl. VAT","#Ingredient / contents","#Packaging","#Total cost","#Contribution","#Margin","#Food cost %","Status","#Units (FY)",""])}
+  ${C.menuList.map((m,i)=>`<tr>${td(canW()?inp(`menu.${i}.range`,m.range):esc(m.range||""))}${td(canW()?sel(`menu.${i}.group`,m.group,["Focaccia","Pantry","Gathering Box","Other"]):esc(m.group))}${td(canW()?inp(`menu.${i}.name`,m.name):esc(m.name))}${td(canW()?inp(`menu.${i}.price`,m.price,"number"):fmt2(m.price),"n")}${n2(m.priceEx)}${n2(m.priceInc)}${n2(m.cost)}${n2(m.pkg)}${n2(m.tuc)}${td("<b>"+fmt2(m.con)+"</b>","n"+(m.con<0?" neg":""))}${np(m.margin)}${np(m.foodPct)}${td(statusPill(m.status))}${ni(C.items[i]?.units)}${td(canW()?`<button class="x" data-rm="menu:${i}">✕</button>`:"")}</tr>`).join("")}</table></div>
+  <div class="panel" style="margin-top:16px;max-width:640px"><h2>Break-even</h2><div class="kv"><span>Contribution margin used</span><b>${pct(cm)}</b><span>Avg monthly operating expenses (actual)</span><b>${fmt0(fixedAvg)}</b><span>Break-even revenue / month (ex-VAT)</span><b>${be?fmt0(be):"n/a"}</b><span>Break-even revenue / selling day</span><b>${perDay?fmt0(perDay):"n/a"}</b><span>Orders / day needed at your avg order value</span><b>${perDay&&aov? (perDay/aov).toFixed(1):"n/a"}</b><span>Avg monthly revenue so far</span><b>${fmt0(t.rev/C.monthsActive)}</b><span>Above / (below) break-even</span><b class="${be&&t.rev/C.monthsActive<be?"bad":"ok"}">${be?fmt0(t.rev/C.monthsActive-be):"n/a"}</b></div><p class="note">Changing a price re-prices past orders. To keep history, add the item again with the new price and a new name.</p></div>`; },
+
+recipes(){ return `<div class="row"><h2 style="font-size:22px">Per-item recipe cost</h2><span class="grow"></span>${canW()?`<button class="btn sec" data-act="addRecipe">+ New recipe</button>`:""}</div><p class="sub">Quantity per batch in the ingredient's unit (kg, litre). Portions per batch splits the batch cost into a per-unit cost.</p>
+  ${S.recipes.map((r,ri)=>{ const rc=C.rec[r.name]||{}; const m=C.menu[r.name]; return `<div class="block"><div class="hd"><h3>▸ ${esc(r.name||"New item")}</h3>${m?`<span>${esc(m.range||"")}</span>`:`<span class="note" style="color:#fff;opacity:.8">not on the menu</span>`}<span class="grow"></span>${canW()?`<button class="x" style="color:#fff" data-rm-recipe="${ri}">✕</button>`:""}</div><div class="bd">
+    <div class="row" style="margin-bottom:8px"><label>Item name ${canW()?inp(`recipes.${ri}.name`,r.name):esc(r.name)}</label><label>Portions / batch ${canW()?inp(`recipes.${ri}.portions`,r.portions,"number",'style="width:80px"'):r.portions}</label><label>Packaging / unit (SAR) ${canW()?inp(`recipes.${ri}.packaging`,r.packaging,"number",'style="width:90px"'):fmt2(r.packaging)}</label></div>
+    <div class="tw"><table>${th(["Ingredient","Unit","#Qty / batch","#Cost / unit","#Line cost","#% of batch","Notes",""])}
+    ${(r.lines||[]).map((l,li)=>{ const lc=N(l.qty)*(C.ingCost[l.ing]||0); return `<tr>${td(canW()?sel(`recipes.${ri}.lines.${li}.ing`,l.ing,S.ingredients.map(i=>i.name)):esc(l.ing))}${td(esc(C.ingUnit[l.ing]||""))}${td(canW()?inp(`recipes.${ri}.lines.${li}.qty`,l.qty,"number"):l.qty,"n")}${n2(C.ingCost[l.ing])}${n2(lc)}${np(rc.batch?lc/rc.batch:null)}${td(canW()?inp(`recipes.${ri}.lines.${li}.note`,l.note):esc(l.note||""))}${td(canW()?`<button class="x" data-rm-line="${ri}:${li}">✕</button>`:"")}</tr>`; }).join("")}
+    <tr class="tot">${td("Batch ingredient cost")}${td("")}${td("")}${td("")}${n2(rc.batch)}${td("")}${td("")}${td(canW()?`<button class="btn sec" style="padding:3px 8px" data-add-line="${ri}">+ line</button>`:"")}</tr></table></div>
+    <div class="cards" style="margin-top:10px">${[["Ingredient cost / portion",fmt2(rc.cpp)],["Packaging / unit",fmt2(rc.pkg)],["Total cost / unit",fmt2(rc.tuc)],["Price ex-VAT",m?fmt2(m.priceEx):"–"],["Contribution / unit",m?fmt2(m.con):"–"],["Margin",m?pct(m.margin):"–"]].map(([l,v])=>`<div class="card"><div class="l">${l}</div><div class="v small ${String(v).startsWith("(")?"neg":""}">${v}</div></div>`).join("")}</div></div></div>`; }).join("")}`; },
+
+boxes(){ return `<div class="row"><h2 style="font-size:22px">Gathering boxes</h2><span class="grow"></span>${canW()?`<button class="btn sec" data-act="addBox">+ New box</button>`:""}</div><p class="sub">Item costs include each item's own packaging (from Recipes). Add utensils and the box itself.</p>
+  ${S.boxes.map((b,bi)=>{ const bx=C.box[b.name]||{}; const m=C.menu[b.name]; return `<div class="block"><div class="hd" style="background:var(--orange)"><h3>📦 ${esc(b.name||"New box")}</h3><span>${esc(b.occasion||"")}</span><span class="grow"></span>${canW()?`<button class="x" style="color:#fff" data-rm-box="${bi}">✕</button>`:""}</div><div class="bd">
+    <div class="row" style="margin-bottom:8px"><label>Box name ${canW()?inp(`boxes.${bi}.name`,b.name):esc(b.name)}</label><label>Occasion ${canW()?inp(`boxes.${bi}.occasion`,b.occasion):esc(b.occasion||"")}</label></div>
+    <div class="tw"><table>${th(["Item","#Qty","#Unit cost","#Item total",""])}${(b.items||[]).map((it,ii)=>{ const uc=(C.rec[it.item]||{}).tuc||0; return `<tr>${td(canW()?sel(`boxes.${bi}.items.${ii}.item`,it.item,C.menuList.filter(x=>x.group!=="Gathering Box").map(x=>x.name)):esc(it.item))}${td(canW()?inp(`boxes.${bi}.items.${ii}.qty`,it.qty,"number"):it.qty,"n")}${n2(uc)}${n2(uc*N(it.qty))}${td(canW()?`<button class="x" data-rm-box-item="${bi}:${ii}">✕</button>`:"")}</tr>`; }).join("")}
+    <tr>${td("Items cost subtotal")}${td("")}${td("")}${n2((bx.contents||0)-N(b.manual))}${td(canW()?`<button class="btn sec" style="padding:3px 8px" data-add-box-item="${bi}">+ item</button>`:"")}</tr>
+    <tr>${td("Other contents / manual cost")}${td("")}${td("")}${td(canW()?inp(`boxes.${bi}.manual`,b.manual,"number"):fmt2(b.manual),"n")}${td("")}</tr><tr>${td("Utensils (plates / spoons / tissue / picks)")}${td("")}${td("")}${td(canW()?inp(`boxes.${bi}.utensils`,b.utensils,"number"):fmt2(b.utensils),"n")}${td("")}</tr><tr>${td("Box packaging")}${td("")}${td("")}${td(canW()?inp(`boxes.${bi}.box`,b.box,"number"):fmt2(b.box),"n")}${td("")}</tr>
+    <tr class="tot">${td("TOTAL BOX COST")}${td("")}${td("")}${n2(bx.total)}${td("")}</tr><tr>${td("Sale price ex-VAT (from Menu)")}${td("")}${td("")}${n2(m?m.priceEx:0)}${td("")}</tr><tr class="key">${td("Contribution / box")}${td("")}${td("")}${n2(m?m.priceEx-bx.total:null)}${td(m?pct((m.priceEx-bx.total)/m.priceEx):"")}</tr></table></div></div></div>`; }).join("")}`; },
+
+ingredients(){ return `<div class="row"><h2 style="font-size:22px">Ingredient master list</h2><span class="grow"></span>${canW()?`<button class="btn sec" data-act="addIng">+ Add ingredient</button>`:""}</div><p class="sub">Update a price here and every recipe, box, menu margin and order updates. If you reclaim VAT, enter prices before VAT.</p>
+  <div class="tw"><table>${th(["Ingredient","Category","Purchase unit","#Pack size","Unit of measure","#Purchase price","#Cost / unit","Supplier / notes",""])}
+  ${S.ingredients.map((i,k)=>`<tr>${td(canW()?inp(`ingredients.${k}.name`,i.name):esc(i.name))}${td(canW()?inp(`ingredients.${k}.cat`,i.cat):esc(i.cat||""))}${td(canW()?sel(`ingredients.${k}.unit`,i.unit,["kg","g","litre","ml","unit","pack"]):esc(i.unit))}${td(canW()?inp(`ingredients.${k}.pack`,i.pack,"number"):i.pack,"n")}${td(canW()?sel(`ingredients.${k}.uom`,i.uom,["kg","litre","unit"]):esc(i.uom))}${td(canW()?inp(`ingredients.${k}.price`,i.price,"number"):fmt2(i.price),"n")}${td("<b>"+fmt2(C.ingCost[i.name])+"</b>","n")}${td(canW()?inp(`ingredients.${k}.supplier`,i.supplier):esc(i.supplier||""))}${td(canW()?`<button class="x" data-rm="ingredients:${k}">✕</button>`:"")}</tr>`).join("")}</table></div>`; },
+
+batch(){ const plan = S.plan || {}; const names = C.menuList.map(m=>m.name); const week = n => (plan[n]||[]).reduce((a,b)=>a+N(b),0);
+  const toMake = {}; names.forEach(n=>{ if(C.box[n]) return; let q = week(n); S.boxes.forEach(b=>{ q += week(b.name)*(b.items||[]).filter(it=>it.item===n).reduce((a,it)=>a+N(it.qty),0); }); toMake[n]=q; });
+  const batches = {}; S.recipes.forEach(r=>{ batches[r.name] = N(r.portions)? Math.ceil((toMake[r.name]||0)/N(r.portions)) : 0; });
+  const need = {}; S.recipes.forEach(r=>(r.lines||[]).forEach(l=>{ need[l.ing]=(need[l.ing]||0)+N(l.qty)*(batches[r.name]||0); }));
+  const stock = S.stock||{};
+  return `<h2 style="font-size:22px">Batch planner & shopping list</h2><p class="sub">Plan the week's sales (boxes too). Box contents are exploded into items, rounded up to whole batches, then turned into a shopping list. Plans are kept in this browser only.</p>
+  <div class="grid2"><div class="panel"><h2>Step 1 · planned quantities</h2><div class="tw"><table>${th(["Item","Mon","Tue","Wed","Thu","Fri","Sat","Sun","#Week","#To make","#Batches"])}
+  ${names.map(n=>`<tr>${td(esc(n))}${[0,1,2,3,4,5,6].map(d=>td(`<input type="number" min="0" data-plan="${esc(n)}:${d}" value="${(plan[n]||[])[d]||""}" style="width:52px">`)).join("")}${ni(week(n))}${td(C.box[n]?"–":int(toMake[n]),"n")}${td(C.box[n]?"–":(batches[n]!=null?int(batches[n]):"–"),"n")}</tr>`).join("")}</table></div></div>
+  <div class="panel"><h2>Step 2 · shopping list</h2><div class="tw"><table>${th(["Ingredient","#Qty needed","Unit","#Cost / unit","#Est. cost","#In stock","#To buy","#Spend","Supplier"])}
+  ${S.ingredients.filter(i=>need[i.name]>0).map(i=>{ const q=need[i.name], c=C.ingCost[i.name], buy=Math.max(0,q-N(stock[i.name])); return `<tr style="${buy>0?"background:color-mix(in srgb,var(--orange) 12%,transparent)":""}">${td(esc(i.name))}${td(q.toFixed(3),"n")}${td(esc(i.uom))}${n2(c)}${n2(q*c)}${td(`<input type="number" min="0" step="any" data-stock="${esc(i.name)}" value="${stock[i.name]||""}" style="width:70px">`,"n")}${td(buy.toFixed(3),"n")}${n2(buy*c)}${td(esc(i.supplier||""))}</tr>`; }).join("")||`<tr><td colspan="9" class="empty">Enter planned quantities to build the list.</td></tr>`}
+  <tr class="tot">${td("TOTAL")}${td("")}${td("")}${td("")}${n0(Object.entries(need).reduce((a,[k,q])=>a+q*(C.ingCost[k]||0),0))}${td("")}${td("")}${n0(Object.entries(need).reduce((a,[k,q])=>a+Math.max(0,q-N(stock[k]))*(C.ingCost[k]||0),0))}${td("")}</tr></table></div></div></div>`; },
+
+goals(){ const t=C.tot; const a = S.scen || {orders:5, aov:55, vc:22, fixed:1700, days:N(C.st.sellingDays), p:0, v:0, c:0}; const sellDays = Math.max(1, C.daily.filter(d=>d.orders>0).length);
+  const act = {orders:(t.orders/sellDays), aov:t.aov||0, vc:t.orders? t.vc/t.orders:0, fixed:t.opxT/C.monthsActive, days:N(C.st.sellingDays)};
+  const sc = [["Current",1,1,1],["Price up 10%",1,1.1,1],["Price down 10%",1,.9,1],["Volume +30%",1.3,1,1],["Volume −20%",.8,1,1],["Costs up 15%",1,1,1.15],["Your scenario",1+N(a.v)/100,1+N(a.p)/100,1+N(a.c)/100]].map(([l,vm,pm,cm])=>{ const o=N(a.orders)*vm, av=N(a.aov)*pm, vc=N(a.vc)*cm, rev=o*av*N(a.days), vcs=o*vc*N(a.days), fx=N(a.fixed)*cm; return {l,o,av,vc,rev,vcs,fx,np:rev-vcs-fx}; });
+  return `<h2 style="font-size:22px">Goals & what-if scenarios</h2><p class="sub">Set monthly goals (saved for everyone). Scenario assumptions are kept in this browser.</p>
+  <div class="panel"><h2>Monthly goals vs actuals</h2><div class="tw"><table>${th(["Month","#Revenue goal (ex-VAT)","#Actual net revenue","#Gap","#% achieved","#Orders needed","#Actual orders","#Profit goal","#Actual net profit","#Gap"])}
+  ${C.pl.map(r=>`<tr>${td(r.label)}${td(canW()?`<input class="in" type="number" data-goal="${r.key}:rev" value="${r.goal||""}" style="width:100px">`:fmt0(r.goal),"n")}${n0(r.rev)}${n0(r.goal?r.rev-r.goal:null)}${td(r.goal?`<b class="${r.rev>=r.goal?"ok":"bad"}">${pct(r.rev/r.goal)}</b>`:"–","n")}${td(r.goal&&t.aov?int(Math.ceil(r.goal/t.aov)):"–","n")}${ni(r.orders)}${td(canW()?`<input class="in" type="number" data-goal="${r.key}:profit" value="${r.goalP||""}" style="width:100px">`:fmt0(r.goalP),"n")}${n0(r.np)}${n0(r.goalP?r.np-r.goalP:null)}</tr>`).join("")}
+  <tr class="tot">${td("YEAR")}${n0(t.goal)}${n0(t.rev)}${n0(t.goal?t.rev-t.goal:null)}${np(t.goal?t.rev/t.goal:null)}${td("")}${ni(t.orders)}${n0(t.goalP)}${n0(t.np)}${n0(t.goalP?t.np-t.goalP:null)}</tr></table></div></div>
+  <div class="grid2"><div class="panel"><h2>Assumptions</h2><div class="tw"><table>${th(["","Your assumption","#Actual so far"])}${[["orders","Avg orders per selling day",act.orders.toFixed(1)],["aov","Avg order value ex-VAT (SAR)",fmt2(act.aov)],["vc","Avg variable cost per order (SAR)",fmt2(act.vc)],["fixed","Monthly fixed costs (SAR)",fmt0(act.fixed)],["days","Selling days per month",act.days],["p","Price change %","—"],["v","Volume change %","—"],["c","Cost change %","—"]].map(([k,l,v])=>`<tr>${td(l)}${td(`<input class="in" type="number" step="any" data-scen="${k}" value="${a[k]??""}" style="width:100px">`)}${td(v,"n")}</tr>`).join("")}</table></div><p class="note"><button class="btn sec" data-act="useActual">Use my actual figures</button></p></div>
+  <div class="panel"><h2>Scenario results (per month)</h2><div class="tw"><table>${th(["Scenario","#Orders / day","#Avg order","#Var cost / order","#Revenue","#Variable costs","#Fixed","#Profit","#Margin","#vs current"])}${sc.map((s,i)=>`<tr class="${i===6?"tot":""}">${td(s.l)}${td(s.o.toFixed(1),"n")}${n2(s.av)}${n2(s.vc)}${n0(s.rev)}${n0(s.vcs)}${n0(s.fx)}${td("<b>"+fmt0(s.np)+"</b>","n"+(s.np<0?" neg":""))}${np(s.rev?s.np/s.rev:null)}${td(i?`<span class="${s.np-sc[0].np<0?"bad":"ok"}">${fmt0(s.np-sc[0].np)}</span>`:"—","n")}</tr>`).join("")}</table></div></div></div>`; },
+
+wastage(){ const cap = S.cap || {loaves:10, items:20}; const dows=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]; const avgL = (()=>{ const f=C.menuList.filter(m=>m.group==="Focaccia"); return f.length? f.reduce((a,m)=>a+m.priceEx,0)/f.length:0; })();
+  const prev = C.wastage.filter(w=>w.preventable==="Yes").reduce((a,w)=>a+w.cost,0);
+  return `<div class="row"><h2 style="font-size:22px">Wastage & kitchen capacity</h2><span class="grow"></span>${canW()?`<button class="btn" data-act="newWaste">+ Log wastage</button>`:""}</div><p class="sub">Log anything thrown away. Capacity uses your average sales per weekday.</p>
+  <div class="grid2"><div class="panel"><h2>Kitchen capacity (per day)</h2><div class="row" style="margin-bottom:8px"><label>Max loaves / day <input type="number" data-cap="loaves" value="${cap.loaves}" style="width:70px"></label><label>Max pantry items / day <input type="number" data-cap="items" value="${cap.items}" style="width:70px"></label></div>
+  <div class="tw"><table>${th(["Day","#Avg loaves sold","#Avg units sold","#Capacity used","#Spare loaves","#Unused revenue (SAR)","#Days counted"])}${dows.map(d=>{ const ds=C.daily.filter(x=>x.dow===d&&x.orders>0); const al=ds.length?ds.reduce((a,x)=>a+x.loaves,0)/ds.length:0, au=ds.length?ds.reduce((a,x)=>a+x.units,0)/ds.length:0; const used=N(cap.loaves)?al/N(cap.loaves):null; return `<tr>${td(d)}${td(al.toFixed(1),"n")}${td(au.toFixed(1),"n")}${td(`<b class="${used>.9?"bad":""}">${pct(used)}</b>`,"n")}${td(Math.max(0,N(cap.loaves)-al).toFixed(1),"n")}${n0(Math.max(0,N(cap.loaves)-al)*avgL)}${ni(ds.length)}</tr>`; }).join("")}</table></div><p class="note">Above 90% used means you're near capacity; consider a second bake slot, pre-orders or higher peak-day prices.</p></div>
+  <div class="panel"><h2>Wastage log</h2><div class="cards"><div class="card"><div class="l">Total waste cost</div><div class="v">${fmt0(C.wastage.reduce((a,w)=>a+w.cost,0))}</div></div><div class="card"><div class="l">Preventable</div><div class="v">${fmt0(prev)}</div></div></div>
+  <div class="tw"><table>${th(["Date","Type","Item","#Qty","#Cost / unit","#Waste cost","Reason","Preventable",""])}${C.wastage.length?C.wastage.map(w=>`<tr data-edit="wastage:${w.id}" style="cursor:pointer">${td(w.date)}${td(esc(w.type))}${td(esc(w.item))}${td(w.qty,"n")}${n2(w.cpu)}${n2(w.cost)}${td(esc(w.reason||""))}${td(esc(w.preventable||""))}${td(canW()?`<button class="x" data-del="wastage:${w.id}">✕</button>`:"")}</tr>`).join(""):`<tr><td colspan="9" class="empty">Nothing logged.</td></tr>`}</table></div></div></div>`; },
+
+settings(){ const s=S.settings; return `<h2 style="font-size:22px">Settings</h2><p class="sub">Set once. Every view reads from here.</p>
+  <div class="grid2"><div class="panel"><h2>Business & VAT</h2><div class="form"><label>Business name ${inp("settings.business",s.business)}</label><label>Financial year start ${inp("settings.fyStart",s.fyStart,"date")}</label><label>VAT registered with ZATCA? ${sel("settings.vatRegistered",s.vatRegistered?"Yes":"No",["Yes","No"])}</label><label>VAT rate (%) ${inp("settings.vatRate",Math.round(N(s.vatRate)*1000)/10,"number")}</label><label>Menu prices include VAT? ${sel("settings.pricesInclVat",s.pricesInclVat?"Yes":"No",["Yes","No"])}</label><label>Target contribution margin (%) ${inp("settings.targetMargin",Math.round(N(s.targetMargin)*1000)/10,"number")}</label><label>Selling days per month ${inp("settings.sellingDays",s.sellingDays,"number")}</label><label>Delivery charged to customer (SAR) ${inp("settings.deliveryFee",s.deliveryFee==null?40:s.deliveryFee,"number")}</label><label>Delivery cost you pay (SAR) ${inp("settings.deliveryCost",s.deliveryCost==null?40:s.deliveryCost,"number")}</label></div></div>
+  <div class="panel"><h2>Receipts</h2><div class="form">${(()=>{ const rc = rcfg(); const I=(k,l,t="text",w=false)=>`<label class="${w?"wide":""}">${l} ${inp("settings.receipt."+k, rc[k], t)}</label>`; return I("business","Business name on receipt")+I("tagline","Tagline")+I("employee","Employee line")+I("pos","POS line")+I("handle","Footer handle")+I("phone","Phone (optional)")+I("address","Address (optional)")+I("vatNo","VAT number (blank if not registered)")+I("footer","Extra footer line")+I("prefix","Receipt number prefix")+I("nextNo","Next receipt number","number")+I("publicUrl","Public link of this page (for customer links)","url",true); })()}</div><p class="note">Delivery is charged outside VAT on receipts and in the accounts. With a VAT number set, receipts carry a ZATCA phase-1 QR code. Customer links need this page shared as "Anyone with the link".</p></div>
+  <div class="panel"><h2>Money accounts & opening balances</h2><div class="tw"><table>${th(["Account","#Opening balance (SAR)",""])}${(s.accounts||[]).map((a,i)=>`<tr>${td(inp(`settings.accounts.${i}.name`,a.name))}${td(inp(`settings.accounts.${i}.opening`,a.opening,"number"),"n")}${td(`<button class="x" data-rm-acct="${i}">✕</button>`)}</tr>`).join("")}<tr>${td("<i>"+OWNER+"</i>")}${td("n/a","n")}${td("")}</tr></table></div><p class="note"><button class="btn sec" data-act="addAcct">+ Add account</button> · Use "${OWNER}" on an entry when you pay from your own pocket; it counts as capital you put in.</p></div></div>
+  <div class="panel"><h2>Expense & money categories</h2><div class="tw"><table>${th(["Category","Type","VAT on purchases",""])}${(s.categories||[]).map((c,i)=>`<tr>${td(inp(`settings.categories.${i}.name`,c.name))}${td(sel(`settings.categories.${i}.type`,c.type,["Ingredients","Packaging","Operating","Equipment","Capital","Drawings","Loan","VAT","Transfer"]))}${td(sel(`settings.categories.${i}.vat`,c.vat,["Standard","Out of scope"]))}${td(`<button class="x" data-rm-cat="${i}">✕</button>`)}</tr>`).join("")}</table></div><p class="note"><button class="btn sec" data-act="addCat">+ Add category</button></p></div>
+  <div class="panel"><h2>Data</h2><p class="note">${S.dbOn? "Your data lives in the shared database; everyone who signs in sees and edits the same books." : "No database is configured (see config.js), so data is kept in this browser only."} Export a JSON backup any time.</p><div class="row"><button class="btn sec" data-act="export">Copy backup JSON</button><label class="btn sec" style="display:inline-block">Import backup <input type="file" id="importFile" accept="application/json" hidden></label></div><textarea id="exportBox" hidden style="width:100%;height:120px;margin-top:8px"></textarea></div>`; },
+};
+
+// ---------------- editing ----------------
+function setPath(path, val){ const parts = path.split("."); let o = S; for (let i=0;i<parts.length-1;i++){ if (o[parts[i]]==null) o[parts[i]] = {}; o = o[parts[i]]; } o[parts[parts.length-1]] = val; }
+function bind(){
+  const v = $("#view");
+  v.querySelectorAll("[data-k]").forEach(el => el.addEventListener("change", () => {
+    const k = el.dataset.k; let val = el.value; const key = k.split(".")[0];
+    if (el.type==="number") val = el.value==="" ? "" : N(el.value);
+    if (k==="settings.vatRate"||k==="settings.targetMargin") val = N(el.value)/100;
+    if (k==="settings.vatRegistered"||k==="settings.pricesInclVat") val = el.value==="Yes";
+    setPath(k, val); saveConfig(key); render();
+  }));
+  v.querySelector("#q")?.addEventListener("input", e => { S.q = e.target.value; const t = $("#view table"); render(); const q=$("#q"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); });
+  v.querySelector("#dailyM")?.addEventListener("change", e => { S.dailyM = e.target.value; render(); });
+  v.querySelector("#bsDate")?.addEventListener("change", e => { S.bsDate = e.target.value; render(); });
+  v.querySelectorAll("[data-plan]").forEach(el => el.addEventListener("change", () => { const [n,d]=el.dataset.plan.split(/:(?=\d$)/); S.plan ||= {}; S.plan[n] ||= []; S.plan[n][+d]=N(el.value); try{localStorage.setItem("fofo.plan",JSON.stringify(S.plan));}catch(e){} render(); }));
+  v.querySelectorAll("[data-stock]").forEach(el => el.addEventListener("change", () => { S.stock ||= {}; S.stock[el.dataset.stock]=N(el.value); render(); }));
+  v.querySelectorAll("[data-scen]").forEach(el => el.addEventListener("change", () => { S.scen ||= {orders:5,aov:55,vc:22,fixed:1700,days:N(C.st.sellingDays),p:0,v:0,c:0}; S.scen[el.dataset.scen]=N(el.value); render(); }));
+  v.querySelectorAll("[data-cap]").forEach(el => el.addEventListener("change", () => { S.cap ||= {loaves:10,items:20}; S.cap[el.dataset.cap]=N(el.value); render(); }));
+  v.querySelectorAll("[data-goal]").forEach(el => el.addEventListener("change", () => { const [m,k]=el.dataset.goal.split(":"); S.goals[m] ||= {}; S.goals[m][k]=N(el.value); saveConfig("goals"); render(); }));
+  v.addEventListener("click", onClick);
+  if (S.tab==="cashier") bindCashier();
+  v.querySelector("#importFile")?.addEventListener("change", async e => { const f=e.target.files[0]; if(!f) return; try{ const d=JSON.parse(await f.text()); await importAll(d); toast("Imported"); }catch(x){ toast("Import failed: "+x.message,true);} });
+}
+function collectCash(){ const r = S.cash; const g = id => $(id)?.value;
+  if (!r.receiptNo){ r.date = g("#c_date"); r.customer = (g("#c_customer")||"").trim(); r.phone = (g("#c_phone")||"").trim(); r.account = g("#c_account"); r.delivery = $("#c_delivery").checked; r.notes = g("#c_notes"); r.time = g("#c_time")||""; r.occasion = g("#c_occasion")||"";
+    r.items = [...document.querySelectorAll("[data-cit]")].map((el,k)=>{ const qty = N($(`[data-ciq="${k}"]`).value)||1; if (el.value==="__custom") return {custom:true, item:"", name:($(`[data-cin="${k}"]`)||{}).value||"", price:N(($(`[data-cip="${k}"]`)||{}).value), qty}; return {item:el.value, qty}; }); }
+  r.payLink = (g("#c_payLink")||"").trim(); }
+function bindCashier(){ const frm = $("#cash"); const r = S.cash; const known = knownCustomers(); let autoPh = "";
+  frm.addEventListener("input", e => { collectCash(); const cust = $("#c_customer"), ph = $("#c_phone"); if (e.target===cust && cust){ const k = known.find(c=>c.name.toLowerCase()===cust.value.trim().toLowerCase()); if (k && k.phone && (!ph.value || ph.value===autoPh)){ ph.value = k.phone; autoPh = k.phone; r.phone = k.phone; } }
+    const R = receiptOf(C.enrich(r)); drawReceipt($("#rc"), R); const kv = $("#view .kv"); if (kv) kv.innerHTML = `<span>Total before VAT</span><b style="text-align:right">${f2(R.net)}</b><span>VAT ${Math.round(R.rate*100)}%</span><b style="text-align:right">${f2(R.vat)}</b><span>Delivery</span><b style="text-align:right">${f2(R.fee)}</b><span>Total</span><b style="text-align:right">SAR ${f2(R.total)}</b>`; });
+  frm.addEventListener("change", e => { if (e.target.matches("[data-cit]")){ collectCash(); render(); } });
+  $("#cAdd")?.addEventListener("click", ()=>{ collectCash(); r.items.push({item:"",qty:1}); render(); });
+  frm.querySelectorAll("[data-cix]").forEach(b=>b.onclick=()=>{ collectCash(); r.items.splice(+b.dataset.cix,1); if(!r.items.length) r.items.push({item:"",qty:1}); render(); });
+  $("#cNew").onclick = ()=>{ newCashDraft(); render(); };
+  frm.addEventListener("submit", async e => { e.preventDefault(); collectCash();
+    if (!r.items.some(x=>x.custom? x.name : x.item)){ toast("Add at least one item", true); return; } if (r.items.some(x=>x.custom && !x.name)){ toast("Name the custom item", true); return; } if (!r.date){ toast("Enter a date", true); return; }
+    const {no, next} = nextReceiptNo(); r.receiptNo = no; S.settings.receipt = {...rcfg(), nextNo: next}; saveConfig("settings");
+    const row = {date:r.date, time:r.time||"", occasion:r.occasion||"", customer:r.customer, phone:r.phone, items:r.items, delivery:r.delivery, account:r.account, notes:r.notes, payLink:r.payLink, status:"Paid", receiptNo:no};
+    rememberCustomItems(row); row.id = uid(); r.id = row.id; await saveRow("orders", row); rememberCustomer(row); toast("Saved as receipt "+no); render(); });
+  $("#cSavePay")?.addEventListener("click", async ()=>{ collectCash(); const raw = S.orders.find(x=>x.id===r.id); if (raw){ raw.payLink = r.payLink; await saveRow("orders", raw); } toast("Payment link saved"); });
+  const cur = () => { collectCash(); return receiptOf(C.enrich(r)); };
+  const name = () => `${r.receiptNo||"receipt"}${r.customer? "_"+r.customer.replace(/[^\w\u0600-\u06FF]+/g,"-"):""}`;
+  $("#cPng").onclick = () => saveCanvas($("#rc"), "png", name()); $("#cPdf").onclick = () => saveCanvas($("#rc"), "pdf", name());
+  $("#cLink").onclick = async () => copyText(await customerLink(cur()), "Customer link copied — paste it into WhatsApp");
+  $("#cMsg").onclick = async () => { const R = cur(); const link = await customerLink(R); copyText([`Hi${R.customer? " "+R.customer:""}, thank you for your FoFocaccia order 🫓`, `Receipt ${R.no}: ${f2(R.total)} SAR`, `View your receipt: ${link}`, R.payLink? `Pay here: ${R.payLink}`:"", "", receiptText(R)].join("\n"), "Message copied — paste it into WhatsApp"); }; }
+const nowKey = () => ym(today());
+async function onClick(e){
+  const go = e.target.closest("[data-go]"); if (go){ S.tab = go.dataset.go; try{localStorage.setItem("fofo.tab",S.tab);}catch(x){} render(); window.scrollTo(0,0); return; }
+  const sc = e.target.closest("[data-scope]"); if (sc){ S.dashScope = sc.dataset.scope; try{localStorage.setItem("fofo.scope",S.dashScope);}catch(x){} render(); return; }
+  const b = e.target.closest("button,[data-edit]"); if(!b) return;
+  const d = b.dataset;
+  if (d.act==="newOrder") return openForm("orders", {date:today(), items:[{item:"",qty:1}], status:"Paid", delivery:true, account:(S.settings.accounts[0]||{}).name||""});
+  if (d.act==="newExpense") return openForm("expenses", {date:today(), cat:"Ingredients", account:(S.settings.accounts[0]||{}).name||""});
+  if (d.act==="newCustomer") return openForm("customers", {});
+  if (d.act==="newWaste") return openForm("wastage", {date:today(), type:"Ingredient", preventable:"No"});
+  if (d.act==="newFiling") return openForm("filings", {date:today(), type:"Zakat payment", status:"Paid", logExp:true, account:(S.settings.accounts[0]||{}).name||""});
+  if (d.bill){ return openBill(d.bill); }
+  if (d.receipt){ return openReceipt(d.receipt); }
+  if (d.edit){ const [c,id]=d.edit.split(":"); if (e.target.closest("button")) return; return openForm(c, S[c].find(x=>x.id===id)); }
+  if (d.del){ const [c,id]=d.del.split(":"); return confirmBox(`Delete this ${c.slice(0,-1)}?`, ()=>deleteRow(c,id)); }
+  if (d.rm){ const [c,i]=d.rm.split(":"); S[c].splice(+i,1); saveConfig(c); return render(); }
+  if (d.act==="addMenu") return openMenuForm();
+  if (d.act==="addIng"){ S.ingredients.push({name:"New ingredient",cat:"",unit:"kg",pack:1,uom:"kg",price:0,supplier:""}); saveConfig("ingredients"); return render(); }
+  if (d.act==="addRecipe"){ S.recipes.unshift({name:"New item",portions:1,packaging:4,lines:[{ing:S.ingredients[0]?.name||"",qty:0,note:""}]}); saveConfig("recipes"); return render(); }
+  if (d.rmRecipe!=null){ return confirmBox("Delete this recipe?", ()=>{ S.recipes.splice(+d.rmRecipe,1); saveConfig("recipes"); render(); }); }
+  if (d.addLine!=null){ S.recipes[+d.addLine].lines.push({ing:S.ingredients[0]?.name||"",qty:0,note:""}); saveConfig("recipes"); return render(); }
+  if (d.rmLine){ const [r,l]=d.rmLine.split(":"); S.recipes[+r].lines.splice(+l,1); saveConfig("recipes"); return render(); }
+  if (d.act==="addBox"){ S.boxes.push({name:"New box",occasion:"",items:[],manual:0,utensils:15.4,box:25}); saveConfig("boxes"); return render(); }
+  if (d.rmBox!=null){ return confirmBox("Delete this box?", ()=>{ S.boxes.splice(+d.rmBox,1); saveConfig("boxes"); render(); }); }
+  if (d.addBoxItem!=null){ S.boxes[+d.addBoxItem].items.push({item:S.recipes[0]?.name||"",qty:1}); saveConfig("boxes"); return render(); }
+  if (d.rmBoxItem){ const [b,i]=d.rmBoxItem.split(":"); S.boxes[+b].items.splice(+i,1); saveConfig("boxes"); return render(); }
+  if (d.act==="addAcct"){ S.settings.accounts.push({name:"New account",opening:0}); saveConfig("settings"); return render(); }
+  if (d.rmAcct!=null){ S.settings.accounts.splice(+d.rmAcct,1); saveConfig("settings"); return render(); }
+  if (d.act==="addCat"){ S.settings.categories.push({name:"New category",type:"Operating",vat:"Standard"}); saveConfig("settings"); return render(); }
+  if (d.rmCat!=null){ S.settings.categories.splice(+d.rmCat,1); saveConfig("settings"); return render(); }
+  if (d.act==="useActual"){ const t=C.tot, sd=Math.max(1,C.daily.filter(x=>x.orders>0).length); S.scen={orders:+(t.orders/sd).toFixed(1), aov:+(t.aov||0).toFixed(2), vc:+(t.orders?t.vc/t.orders:0).toFixed(2), fixed:Math.round(t.opxT/C.monthsActive), days:N(C.st.sellingDays), p:0,v:0,c:0}; return render(); }
+  if (d.act==="export"){ const data = {settings:S.settings, ingredients:S.ingredients, recipes:S.recipes, boxes:S.boxes, menu:S.menu, suppliers:S.suppliers, goals:S.goals, orders:S.orders, expenses:S.expenses, wastage:S.wastage, customers:S.customers}; const txt=JSON.stringify(data,null,1); const box=$("#exportBox"); box.hidden=false; box.value=txt; try{ await navigator.clipboard.writeText(txt); toast("Backup copied to clipboard"); }catch(x){ box.select(); toast("Select the text and copy it"); } }
+}
+async function importAll(d){ for (const k of ["settings","ingredients","recipes","boxes","menu","suppliers"]) if (d[k]) { S[k]=d[k]; saveConfig(k); } if (d.goals){ S.goals=d.goals; saveConfig("goals"); }
+  for (const c of ["orders","expenses","wastage","customers","filings"]) for (const row of (d[c]||[])) await saveRow(c, row); render(); }
+function knownCustomers(){ const map = new Map(); S.customers.forEach(c=>{ if(c.name) map.set(c.name.toLowerCase(), {name:c.name, phone:c.phone||""}); });
+  [...S.orders].sort((a,b)=>(a.date||"")<(b.date||"")?-1:1).forEach(o=>{ if(!o.customer) return; const k=o.customer.toLowerCase(); const e=map.get(k); if(!e) map.set(k,{name:o.customer, phone:o.phone||""}); else if(o.phone && !e.phone) e.phone=o.phone; });
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name)); }
+function rememberCustomItems(o){ let added = false;
+  o.items.forEach(it => { if (!it.custom || !it.name) return; const name = it.name.trim(); const ex = S.menu.find(m=>(m.name||"").toLowerCase()===name.toLowerCase());
+    if (!ex) { S.menu.push({range:"Custom", group:"Other", name, price:N(it.price)}); added = true; }
+    else if (N(it.price) && N(ex.price)!==N(it.price)) { /* keep the saved menu price; this order keeps its own */ } });
+  if (added) { saveConfig("menu"); toast("Custom item saved to the menu"); } }
+function knownSuppliers(){ const map = new Map(); S.suppliers.forEach(x=>{ if(x.name) map.set(x.name.toLowerCase(), {name:x.name, cat:x.cat||""}); });
+  [...S.expenses].sort((a,b)=>(a.date||"")<(b.date||"")?-1:1).forEach(e=>{ if(!e.party) return; const k=e.party.toLowerCase(); const v=map.get(k); if(!v) map.set(k,{name:e.party, cat:e.cat||""}); else if(e.cat) v.cat=e.cat; });
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name)); }
+function rememberSupplier(e){ if(!e.party) return; const ex = S.suppliers.find(x=>(x.name||"").toLowerCase()===e.party.toLowerCase());
+  if(!ex) S.suppliers.push({name:e.party, cat:e.cat||""}); else ex.cat = e.cat||ex.cat; saveConfig("suppliers"); }
+async function saveBill(id, data, removed){ if (!data && !removed) return;
+  if (!db){ try{ if(data) localStorage.setItem("fofo.bill."+id, data); else localStorage.removeItem("fofo.bill."+id); }catch(x){ toast("Photo too large to keep in this browser", true); } return; }
+  try { if (data) await db.doc("bills/"+id).set({data, savedAt: today()}); else await db.doc("bills/"+id).delete(); } catch(x){ toast("Photo not saved: "+(x.message||x.code), true); } }
+async function openBill(id){ let data = null; try { if (db){ const sn = await db.doc("bills/"+id).get(); data = sn.exists ? sn.data().data : null; } else data = localStorage.getItem("fofo.bill."+id); } catch(x){}
+  if (!data){ toast("No photo found for this expense", true); return; }
+  $("#modalHost").innerHTML = `<div class="modal"><div class="box" style="width:min(900px,100%);text-align:center"><img src="${data}" alt="bill" style="max-width:100%;max-height:75vh;border-radius:8px"><div class="row" style="margin-top:10px;justify-content:center"><button class="btn sec" id="cancel">Close</button></div></div></div>`;
+  $("#cancel").onclick = closeModal; $("#modalHost .modal").addEventListener("click", e=>{ if(e.target.classList.contains("modal")) closeModal(); }); }
+function compressImage(file){ return new Promise((res, rej) => { const img = new Image(); const url = URL.createObjectURL(file);
+  img.onload = () => { URL.revokeObjectURL(url); let w = img.width, h = img.height, max = 1400; const c = document.createElement("canvas");
+    const tryEncode = (maxPx, q) => { const sc = Math.min(1, maxPx/Math.max(w,h)); c.width = Math.round(w*sc); c.height = Math.round(h*sc); c.getContext("2d").drawImage(img,0,0,c.width,c.height); return c.toDataURL("image/jpeg", q); };
+    let out = tryEncode(max, .8); const steps = [[1400,.65],[1100,.6],[900,.55],[700,.5]]; for (const [m,q] of steps){ if (out.length < 230000) break; out = tryEncode(m,q); }
+    if (out.length >= 250000) rej(new Error("too large")); else res(out); };
+  img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("bad image")); }; img.src = url; }); }
+function rememberCustomer(o){ if(!o.customer) return; const ex = S.customers.find(c=>(c.name||"").toLowerCase()===o.customer.toLowerCase());
+  if(!ex) saveRow("customers", {name:o.customer, phone:o.phone||""}); else if (o.phone && ex.phone!==o.phone) saveRow("customers", {...ex, phone:o.phone}); }
+function confirmBox(msg, ok){ $("#modalHost").innerHTML = `<div class="modal"><div class="box" style="width:min(420px,100%)"><p>${esc(msg)}</p><div class="row"><button class="btn danger" id="ok">Delete</button><button class="btn sec" id="cancel">Cancel</button></div></div></div>`; $("#ok").onclick=()=>{ closeModal(); ok(); }; $("#cancel").onclick=closeModal; }
+function closeModal(){ $("#modalHost").innerHTML=""; }
+window.addEventListener("error", e => { try{ toast("Page error: "+(e.message||"unknown"), true); }catch(x){} });
+window.addEventListener("unhandledrejection", e => { try{ const r = e.reason||{}; toast("Error: "+(r.code? r.code+" ":"")+(r.message||r), true); }catch(x){} });
+function openMenuForm(){
+  const ranges = [...new Set(S.menu.map(m=>m.range).filter(Boolean))];
+  $("#modalHost").innerHTML = `<div class="modal"><div class="box" style="width:min(460px,100%)"><h2 style="margin-bottom:10px">Add menu item</h2><form id="mfrm" class="form" novalidate>
+    <label class="wide">Item name<input class="in" id="m_name" required autocomplete="off" placeholder="e.g. Pistachio & Honey"></label>
+    <label>Group<select class="in" id="m_group">${["Focaccia","Pantry","Gathering Box","Other"].map(g=>`<option>${g}</option>`).join("")}</select></label>
+    <label>Range<input class="in" id="m_range" list="mRanges" autocomplete="off" placeholder="e.g. Nonna's"><datalist id="mRanges">${ranges.map(r=>`<option value="${esc(r)}">`).join("")}</datalist></label>
+    <label>Menu price (SAR${S.settings.pricesInclVat?", incl. VAT":", ex-VAT"})<input class="in" id="m_price" type="number" step="any" min="0" inputmode="decimal" required placeholder="0"></label>
+    <div class="wide row" style="margin-top:6px"><button class="btn" type="button" id="mAdd">Add item</button><button class="btn sec" type="button" id="mcancel">Cancel</button></div>
+    <p class="note wide">The item goes on the Menu &amp; Pricing tab and appears in the Cashier and Orders dropdowns right away. Add a recipe later to get its cost and margin.</p></form></div></div>`;
+  const m = $("#modalHost"); $("#mcancel").onclick = closeModal; m.querySelector(".modal").addEventListener("click", e=>{ if(e.target.classList.contains("modal")) closeModal(); });
+  setTimeout(()=>$("#m_name")?.focus(), 50);
+  const submit = () => { try {
+    const name = ($("#m_name").value||"").trim(); const price = N($("#m_price").value);
+    if (!name){ toast("Enter an item name", true); $("#m_name").focus(); return; } if (!(price>0)){ toast("Enter the menu price", true); $("#m_price").focus(); return; }
+    if (S.menu.some(x=>(x.name||"").toLowerCase()===name.toLowerCase())){ toast("That item already exists on the menu", true); return; }
+    S.menu.push({range: ($("#m_range").value||"").trim(), group: $("#m_group").value, name, price}); saveConfig("menu"); closeModal(); S.tab="menu"; render();
+    const el = $(`[data-k="menu.${S.menu.length-1}.name"]`); if (el){ el.scrollIntoView({block:"center"}); el.closest("tr").style.outline="2px solid var(--gold)"; } toast("Added "+name+" — saving…");
+  } catch(err){ console.error(err); toast("Could not add: "+(err.message||err), true); } };
+  $("#mAdd").addEventListener("click", e => { e.preventDefault(); submit(); });
+  $("#mfrm").addEventListener("submit", e => { e.preventDefault(); submit(); });
+  $("#mfrm").addEventListener("keydown", e => { if (e.key==="Enter" && e.target.tagName!=="TEXTAREA"){ e.preventDefault(); submit(); } });
+}
+
+function openForm(coll, row){
+  const r = JSON.parse(JSON.stringify(row)); const accts = [...S.settings.accounts.map(a=>a.name), OWNER]; const known = coll==="orders" ? knownCustomers() : []; const F = (l, html, wide) => `<label class="${wide?"wide":""}">${l}${html}</label>`;
+  const i = (k,t="text",extra="") => `<input class="in" id="f_${k}" type="${t}" ${t==="number"?'step="any"':""} value="${esc(r[k]??"")}" ${extra}>`;
+  const s = (k,opts) => `<select class="in" id="f_${k}">${opts.map(o=>`<option ${o===(r[k]??"")?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+  let body = "", title = "";
+  if (coll==="orders"){ title = r.id? "Edit order":"New order"; if (r.delivery==null) r.delivery = true;
+    body = F("Date", i("date","date")) + F("Customer", i("customer","text",`list="custList" autocomplete="off"`)) + `<datalist id="custList">${known.map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist>` + F("Phone / WhatsApp <span id=\"phoneHint\" class=\"note\"></span>", i("phone","tel"))
+    + `<div class="items-edit"><div class="note">Items${C.menuList.length?"":" — <b class='bad'>no menu items loaded yet; add them on Menu &amp; Pricing</b>"}</div>${(r.items||[]).map((it,k)=>`<div class="ln"><select class="in" data-it="${k}"><option value="">— choose item —</option>${C.menuList.map(m=>`<option ${!it.custom&&m.name===it.item?"selected":""}>${esc(m.name)}</option>`).join("")}<option value="__custom" ${it.custom?"selected":""}>✎ Custom item…</option></select><input class="in" type="number" min="1" data-iq="${k}" value="${it.qty||1}" placeholder="qty"><button class="x" data-ix="${k}" type="button">✕</button></div>${it.custom?`<div class="ln cust"><input class="in" data-in="${k}" value="${esc(it.name||"")}" placeholder="Custom item name"><input class="in" type="number" step="any" min="0" inputmode="decimal" data-ip="${k}" value="${it.price?esc(it.price):""}" placeholder="Price SAR"><span class="note">SAR</span></div>`:""}`).join("")}<div><button class="btn sec" id="addIt" type="button">+ item</button></div>${(()=>{ const cu = S.menu.map((m,i)=>({...m,i})).filter(m=>m.range==="Custom"); return cu.length? `<details class="note"><summary>Saved custom items (${cu.length})</summary><div class="row" style="margin-top:4px">${cu.map(m=>`<span class="pill" style="background:var(--panel2)">${esc(m.name)} · ${fmt0(m.price)} <button class="x" type="button" data-rm-custom="${m.i}" title="Remove from menu">✕</button></span>`).join("")}</div></details>` : ""; })()}</div>`
+    + F("Time (optional)", i("time","time")) + F("Occasion (optional)", s("occasion",["","Eid","Ramadan","Birthday","Corporate","Gift","Wedding / engagement","National Day","Other"]))
+    + F("Delivery", `<label class="row" style="color:var(--fg);font-size:14px;gap:6px;flex-wrap:nowrap"><input type="checkbox" id="f_delivery" ${r.delivery!==false?"checked":""}> Delivered — ${fmt0(C.DF)} SAR charged, ${fmt0(C.DC)} SAR cost (untick for pickup)</label>`) + F("Paid into", s("account",accts)) + F("Delivery date", i("deliveryDate","date")) + F("Special requests / notes", i("notes"), true);
+  } else if (coll==="expenses"){ title = r.id? "Edit expense":"New expense";
+    const sup = knownSuppliers(); const catType = {}; S.settings.categories.forEach(c=>catType[c.name]=c.type);
+    const amt = r.amount!=null ? r.amount : (N(r.out)||N(r.in)||""); const dir = r.dir || (N(r.in)&&!N(r.out) ? "in" : "out");
+    const showDir = ["Capital","Loan","Transfer","VAT","Drawings"].includes(catType[r.cat]);
+    body = F("Date", i("date","date")) + F("Supplier / party", `<input class="in" id="f_party" list="supList" autocomplete="off" value="${esc(r.party||"")}"><datalist id="supList">${sup.map(x=>`<option value="${esc(x.name)}">`).join("")}</datalist>`)
+      + F("Category <span class=\"note\" id=\"catHint\"></span>", s("cat",S.settings.categories.map(c=>c.name)))
+      + F("Amount (SAR, VAT included)", `<input class="in" id="f_amount" type="number" step="any" min="0" inputmode="decimal" value="${esc(amt)}">`)
+      + F("VAT on this bill", `<select class="in" id="f_vatMode"><option value="std" ${(r.vatOverride===""||r.vatOverride==null)?"selected":""}>As per category (15% if a tax invoice)</option><option value="none" ${(r.vatOverride!==""&&r.vatOverride!=null&&N(r.vatOverride)===0)?"selected":""}>No VAT to reclaim (no tax invoice / exempt)</option></select>`)
+      + F("Notes", i("notes"), true)
+      + (showDir ? F("Direction", `<select class="in" id="f_dir"><option value="out" ${dir==="out"?"selected":""}>Money paid out</option><option value="in" ${dir==="in"?"selected":""}>Money received</option></select>`) : `<input type="hidden" id="f_dir" value="out">`)
+      + F("Paid from", s("account",accts))
+      + F("Bill / receipt photo", `<div class="row"><label class="btn sec" style="display:inline-block">📷 ${r.hasBill||r.billData?"Replace photo":"Add photo"}<input type="file" id="billFile" accept="image/*" capture="environment" hidden></label><span id="billStatus" class="note">${r.hasBill||r.billData?"photo attached":"none"}</span>${(r.hasBill||r.billData)?`<button class="x" type="button" id="billRm" title="Remove photo">✕</button>`:""}</div><div id="billPrev" style="margin-top:6px">${r.billData?`<img src="${r.billData}" alt="bill" style="max-height:160px;border-radius:6px;border:1px solid var(--line)">`:""}</div>`, true);
+  } else if (coll==="customers"){ title = r.id? "Edit customer":"New customer";
+    body = F("Name (as on orders)", i("name")) + F("Phone / WhatsApp", i("phone")) + F("Area / neighbourhood", i("area")) + F("Birthday / occasion", i("occasion")) + F("Tags", s("tags",["","VIP","Regular","New","B2B","Lapsed"])) + F("Notes", i("notes"), true);
+  } else if (coll==="filings"){ title = r.id? "Edit filing / payment":"Log filing / payment";
+    const types = ["Zakat return","Zakat payment","Zakat certificate","VAT return","VAT payment","Licence / registration","Other ZATCA"]; const isPay = /payment/.test(r.type||"");
+    body = F("Date", i("date","date")) + F("Type", s("type",types)) + F("Period <span class=\"note\">e.g. FY 2025, Q3 2026</span>", i("period","text",`placeholder="FY ${new Date().getFullYear()-1}"`)) + F("Status", s("status",["Paid","Filed","Done","Due"]))
+      + F("Amount (SAR)", i("amount","number")) + F("Reference / certificate no.", i("ref")) + F("Due date (if still due)", i("due","date")) + F("Notes", i("notes"), true)
+      + (isPay ? `<div class="wide" id="payBox" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px"><label class="row" style="color:var(--fg);font-size:14px;gap:6px"><input type="checkbox" id="f_logExp" ${r.logExp!==false?"checked":""}> Also log this payment in Expenses as money out</label>${F("Paid from", s("account",accts))}</div>` : `<input type="hidden" id="f_logExp" value="">`)
+      + F("Document photo <span class=\"note\">return, receipt, certificate</span>", `<div class="row"><label class="btn sec" style="display:inline-block">📷 ${r.hasBill||r.billData?"Replace photo":"Add photo"}<input type="file" id="billFile" accept="image/*" capture="environment" hidden></label><span id="billStatus" class="note">${r.hasBill||r.billData?"photo attached":"none"}</span>${(r.hasBill||r.billData)?`<button class="x" type="button" id="billRm" title="Remove photo">✕</button>`:""}</div><div id="billPrev" style="margin-top:6px">${r.billData?`<img src="${r.billData}" alt="document" style="max-height:160px;border-radius:6px;border:1px solid var(--line)">`:""}</div>`, true);
+  } else if (coll==="wastage"){ title = r.id? "Edit wastage":"Log wastage";
+    const opts = (r.type==="Finished item"? C.menuList.map(m=>m.name) : S.ingredients.map(x=>x.name));
+    body = F("Date", i("date","date")) + F("Type", s("type",["Ingredient","Finished item"])) + F("Item", s("item",opts)) + F("Qty wasted", i("qty","number")) + F("Reason", s("reason",["","Expired","Over-proofed / burnt","Unsold","Damaged","Over-prepared","Other"])) + F("Preventable?", s("preventable",["No","Yes"])) + F("Notes", i("notes"), true);
+  }
+  $("#modalHost").innerHTML = `<div class="modal"><div class="box"><h2 style="margin-bottom:10px">${title}</h2><form id="frm" class="form">${body}<div class="wide row" style="margin-top:6px"><button class="btn" type="submit">Save</button><button class="btn sec" type="button" id="cancel">Cancel</button><span class="grow"></span>${r.id?`<button class="btn danger" type="button" id="delBtn">Delete</button>`:""}</div></form></div></div>`;
+  const m = $("#modalHost"); $("#cancel").onclick = closeModal; m.querySelector(".modal").addEventListener("click", e=>{ if(e.target.classList.contains("modal")) closeModal(); });
+  $("#delBtn")?.addEventListener("click", ()=>{ closeModal(); confirmBox("Delete this record?", ()=>deleteRow(coll, r.id)); });
+  if (coll==="orders"){
+    $("#addIt").onclick = ()=>{ collect(); r.items.push({item:"",qty:1}); openForm(coll, r); };
+    m.querySelectorAll("[data-ix]").forEach(b=>b.onclick=()=>{ collect(); r.items.splice(+b.dataset.ix,1); openForm(coll, r); });
+    m.querySelectorAll("[data-it]").forEach(el=>el.addEventListener("change", ()=>{ collect(); openForm(coll, r); }));
+    m.querySelectorAll("[data-rm-custom]").forEach(b=>b.onclick=()=>{ const name = S.menu[+b.dataset.rmCustom]?.name; collect(); S.menu.splice(+b.dataset.rmCustom,1); saveConfig("menu"); r.items = r.items.map(it=> (!it.custom && it.item===name) ? {item:"",qty:it.qty} : it); toast("Removed "+name); C = calc(); openForm(coll, r); });
+    const cust = $("#f_customer"), ph = $("#f_phone"); let autoPh = "";
+    const fillPhone = () => { const k = known.find(c=>c.name.toLowerCase()===cust.value.trim().toLowerCase()); if (k && k.phone && (!ph.value || ph.value===autoPh)) { ph.value = k.phone; autoPh = k.phone; $("#phoneHint").textContent = "(from saved customer)"; } };
+    cust.addEventListener("input", fillPhone); cust.addEventListener("change", fillPhone); }
+  if (coll==="wastage"){ $("#f_type").addEventListener("change", ()=>{ collect(); r.item=""; openForm(coll, r); }); }
+  if (coll==="filings"){ $("#f_type").addEventListener("change", ()=>{ collect(); openForm(coll, r); }); bindBill(); }
+  if (coll==="expenses"){ bindBill(); const sup = knownSuppliers(); const party = $("#f_party"), cat = $("#f_cat"); let autoCat = "";
+    const fillCat = () => { const k = sup.find(x=>x.name.toLowerCase()===party.value.trim().toLowerCase()); if (k && k.cat && (cat.value===autoCat || !r.id)) { cat.value = k.cat; autoCat = k.cat; $("#catHint").textContent = "(last used for this supplier)"; } };
+    party.addEventListener("input", fillCat); party.addEventListener("change", fillCat);
+    cat.addEventListener("change", ()=>{ collect(); openForm(coll, r); }); }
+  function bindBill(){
+    if (r.id && r.hasBill && !r.billData && db) db.doc("bills/"+r.id).get().then(sn=>{ if (sn.exists){ r.billData = sn.data().data; const pv = $("#billPrev"); if (pv) pv.innerHTML = `<img src="${r.billData}" alt="bill" style="max-height:160px;border-radius:6px;border:1px solid var(--line)">`; } }).catch(()=>{});
+    $("#billFile").addEventListener("change", async e => { const f = e.target.files[0]; if(!f) return; $("#billStatus").textContent = "compressing…"; try { r.billData = await compressImage(f); r.hasBill = true; $("#billStatus").textContent = "photo attached ("+Math.round(r.billData.length*0.75/1024)+" KB)"; $("#billPrev").innerHTML = `<img src="${r.billData}" alt="bill" style="max-height:160px;border-radius:6px;border:1px solid var(--line)">`; } catch(x){ $("#billStatus").textContent = "could not read that image"; } });
+    $("#billRm")?.addEventListener("click", ()=>{ r.billData = null; r.hasBill = false; r.billRemoved = true; $("#billStatus").textContent = "none"; $("#billPrev").innerHTML = ""; }); }
+  function collect(){ m.querySelectorAll("[id^=f_]").forEach(el => { const k = el.id.slice(2); r[k] = el.type==="checkbox" ? el.checked : (el.type==="number" ? (el.value===""? "" : N(el.value)) : el.value); });
+    if (coll==="expenses"){ const amt = N(r.amount); if (r.dir==="in"){ r.in = amt; r.out = ""; } else { r.out = amt; r.in = ""; } r.party = (r.party||"").trim(); delete r.amount; delete r.dir; r.vatOverride = r.vatMode==="none" ? 0 : ""; delete r.vatMode; }
+    if (coll==="filings"){ r.logExp = !!$("#f_logExp")?.checked && /payment/.test(r.type||""); }
+    if (coll==="orders"){ r.items = [...m.querySelectorAll("[data-it]")].map((el,k)=>{ const qty = N(m.querySelector(`[data-iq="${k}"]`).value)||1; if (el.value==="__custom") return {custom:true, item:"", name:(m.querySelector(`[data-in="${k}"]`)||{}).value||"", price:N((m.querySelector(`[data-ip="${k}"]`)||{}).value), qty}; return {item:el.value, qty}; }); r.customer = (r.customer||"").trim(); r.status = "Paid"; } }
+  $("#frm").addEventListener("submit", e => { e.preventDefault(); collect(); if (coll==="orders" && !r.items.some(x=>x.custom? x.name : x.item)) { toast("Add at least one item", true); return; } if (coll==="orders" && r.items.some(x=>x.custom && !x.name)) { toast("Give the custom item a name", true); return; } if (!r.date && coll!=="customers") { toast("Enter a date", true); return; } if (coll==="expenses" && !(N(r.out)||N(r.in))) { toast("Enter the amount", true); return; } if (coll==="expenses" && !r.cat) { toast("Pick a category", true); return; } if (coll==="customers" && !r.name){ toast("Enter a name",true); return; } closeModal(); if (coll==="orders") rememberCustomItems(r); if (coll==="expenses") { const bill = r.billData, removed = r.billRemoved; delete r.billData; delete r.billRemoved; r.id = r.id || uid(); saveBill(r.id, bill, removed); rememberSupplier(r); }
+    if (coll==="filings"){ if (!r.type){ toast("Pick a type", true); return; } const bill = r.billData, removed = r.billRemoved; delete r.billData; delete r.billRemoved; r.id = r.id || uid(); saveBill(r.id, bill, removed);
+      if (r.logExp && N(r.amount) > 0 && r.status!=="Due"){ const cat = /zakat/i.test(r.type) ? "Zakat paid to ZATCA" : "VAT paid to / refunded by ZATCA"; const ex = r.expId ? S.expenses.find(x=>x.id===r.expId) : null;
+        const row = {...(ex||{}), id: ex? ex.id : uid(), date:r.date, party:"ZATCA", cat, out:N(r.amount), in:"", account:r.account, notes:[r.type, r.period, r.ref].filter(Boolean).join(" · "), filingId:r.id}; r.expId = row.id; saveRow("expenses", row); }
+      delete r.logExp; } saveRow(coll, r); if (coll==="orders") rememberCustomer(r); });
+}
+try { S.plan = JSON.parse(localStorage.getItem("fofo.plan")||"null") || undefined; } catch(e){}
+
+// ---------------- Excel export (values of every view, same layout as the workbook) ----------------
+function buildWorkbook(){
+  const X = window.XLSX; const wb = X.utils.book_new(); const t=C.tot; const mh = C.months.map(m=>m.label);
+  const add = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws["!cols"] = widths.map(w=>({wch:w})); X.utils.book_append_sheet(wb, ws, name.slice(0,31)); };
+  const r2 = v => (v==null||v===""||isNaN(v)) ? null : Math.round(v*100)/100;
+  const mrows = (label, f) => [label, ...C.pl.map(r=>r2(f(r))), r2(C.pl.reduce((a,r)=>a+(f(r)||0),0))];
+  const prow = (label, f, tf) => [label, ...C.pl.map(r=>r2(f(r))), r2(tf(C.tot))];
+  const b = C.bs(C.fyEndKey+"-31");
+  add("Dashboard", [["FoFocaccia — financial year "+C.months[0].key+" to "+C.fyEndKey, "", "Exported", new Date().toISOString().slice(0,16).replace("T"," ")],[],
+    ["Net revenue (SAR)",r2(t.rev)],["Orders",t.orders],["Contribution (SAR)",r2(t.con)],["Contribution margin",r2(t.conPct)],["Net profit (SAR)",r2(t.np)],["Net margin",r2(t.npPct)],["Avg order value",r2(t.aov)],["Cash at year end",r2(b.accts.reduce((a,x)=>a+x.bal,0))],["Owed by customers",r2(b.recv)],["VAT owed to ZATCA",r2(b.vatL)],[],
+    ["Month","Target","Net revenue","Contribution","Contrib %","OpEx","Net profit","Net margin","Orders","Avg order","Cash at month end"],
+    ...C.pl.map(r=>[r.label,r2(r.goal),r2(r.rev),r2(r.con),r2(r.conPct),r2(r.opxT),r2(r.np),r2(r.npPct),r.orders,r2(r.aov),r2(r.close)]),
+    ["TOTAL",r2(t.goal),r2(t.rev),r2(t.con),r2(t.conPct),r2(t.opxT),r2(t.np),r2(t.npPct),t.orders,r2(t.aov),r2(t.close)]], [28,12,14,14,12,12,14,12,10,12,16]);
+  add("Order Tracker", [["Receipt #","Date","Customer","Phone","Channel","Items","Units","Loaves","Discount","Delivery fee charged","Delivery cost paid","Paid into","Status","Paid amount","Delivery date","Notes","Subtotal ex-VAT","VAT","Total incl. VAT","Received","Balance due","Ingredient cost","Packaging cost","Total variable cost","Contribution","Contribution %"],
+    ...[...C.orders].reverse().map(o=>[o.receiptNo||"",o.date,o.customer||"",o.phone||"",o.channel||"",o.items.map(i=>(N(i.qty)||1)+"× "+i.label+(i.custom?" (custom "+N(i.price)+" SAR)":"")).join("; "),o.units,o.loaves,r2(N(o.discount)),r2(o.fee),r2(o.delCost),o.account||"",o.status||"Paid",r2(N(o.paidAmt)),o.deliveryDate||"",o.notes||"",r2(o.net),r2(o.vat),r2(o.total),r2(o.received),r2(o.balance),r2(o.ing),r2(o.pkg),r2(o.varc),r2(o.con),r2(o.conPct)])],
+    [11,18,13,11,44,7,7,9,10,10,18,9,10,11,24,12,9,12,10,10,12,11,12,12,10]);
+  add("Expenses Log", [["Date","Supplier / party","Category","Type","Money out","Money in","VAT rate","Gross (signed)","VAT","Net of VAT","Paid from / into","Bill attached"],
+    ...[...C.expenses].reverse().map(e=>[e.date,e.party||"",e.cat||"",e.type,r2(N(e.out)),r2(N(e.in)),e.rate,r2(e.gross),r2(e.vat),r2(e.net),e.account||"",e.hasBill?"Yes":""])], [11,18,30,11,11,11,8,12,10,12,20,10]);
+  add("Daily Log", [["Date","Day","Orders","Units","Loaves","Net revenue","Discounts","Ingredients","Packaging","Delivery","Contribution","Contribution %","Fixed costs (daily)","Daily profit","Month to date"],
+    ...C.daily.map(d=>[d.key,d.dow,d.orders,d.units,d.loaves,r2(d.rev),r2(d.disc),r2(d.ing),r2(d.pkg),r2(d.del),r2(d.con),r2(d.conPct),r2(d.fixed),r2(d.profit),r2(d.mtd)])], [11,6,8,8,8,12,10,11,10,10,12,12,12,12,13]);
+  add("Monthly Summary", [["Month","Orders","Units","Loaves","Net revenue","Discounts","Variable costs","Contribution","Contrib %","Wastage & variance","OpEx","Net profit","Net margin","Avg order","Goal","vs goal"],
+    ...C.pl.map(r=>[r.label,r.orders,r.units,r.loaves,r2(r.rev),r2(-r.disc),r2(r.vc),r2(r.con),r2(r.conPct),r2(r.vari),r2(r.opxT),r2(r.np),r2(r.npPct),r2(r.aov),r2(r.goal),r.goal?r2(r.rev/r.goal):null]),
+    ["YEAR",t.orders,t.units,t.loaves,r2(t.rev),r2(-t.disc),r2(t.vc),r2(t.con),r2(t.conPct),r2(t.vari),r2(t.opxT),r2(t.np),r2(t.npPct),r2(t.aov),r2(t.goal),t.goal?r2(t.rev/t.goal):null]], [8,8,8,8,12,10,12,12,10,14,10,12,10,10,10,8]);
+  add("Yearly Overview", [["Metric",...C.years.map(y=>y.label)],["Orders",...C.years.map(y=>y.orders)],["Units sold",...C.years.map(y=>y.units)],["Loaves sold",...C.years.map(y=>y.loaves)],["Net revenue",...C.years.map(y=>r2(y.rev))],["Revenue growth",...C.years.map(y=>r2(y.growth))],["Variable costs",...C.years.map(y=>r2(y.vc))],["Contribution",...C.years.map(y=>r2(y.con))],["Contribution margin",...C.years.map(y=>r2(y.conPct))],["Wastage & variance",...C.years.map(y=>r2(y.vari))],["Operating expenses",...C.years.map(y=>r2(y.opx))],["Net profit",...C.years.map(y=>r2(y.np))],["Net margin",...C.years.map(y=>r2(y.npPct))],["Avg order value",...C.years.map(y=>r2(y.aov))]], [22,14,14,14]);
+  add("Item Tracker", [["Range","Item","Price ex-VAT",...mh,"Total units","Net sales","Est. contribution","Rank"], ...C.items.map(i=>[i.range||"",i.name,r2(i.priceEx),...i.per,i.units,r2(i.sales),r2(i.est),i.rank||""])], [13,30,10,...mh.map(()=>6),10,12,14,6]);
+  const opx = Object.keys(C.pl[0].opx);
+  add("P&L & Cash Flow", [["PROFIT & LOSS (excl. VAT)",...mh,"Full year"],["REVENUE"],mrows("Focaccia sales",r=>r.foc),mrows("Pantry sales",r=>r.pan),mrows("Gathering box sales",r=>r.box),mrows("Other sales",r=>r.oth),mrows("Less: discounts",r=>r.disc),mrows("Delivery fees charged",r=>r.fee),mrows("Net revenue",r=>r.rev),[],
+    ["VARIABLE COSTS"],mrows("Ingredient costs",r=>r.ing),mrows("Packaging costs",r=>r.pkg),mrows("Delivery costs",r=>r.del),mrows("Total variable costs",r=>r.vc),mrows("CONTRIBUTION",r=>r.con),prow("Contribution margin %",r=>r.conPct,t=>t.conPct),[],
+    ["WASTAGE & PURCHASE VARIANCE"],mrows("Ingredients actually bought",r=>r.ingB),mrows("Packaging actually bought",r=>r.pkgB),mrows("Variance: bought − used per recipe",r=>r.vari),mrows("memo: wastage logged",r=>r.waste),mrows("GROSS PROFIT",r=>r.gp),prow("Gross margin %",r=>r.gpPct,t=>t.gpPct),[],
+    ["OPERATING EXPENSES"],...opx.map(k=>mrows(k,r=>r.opx[k])),mrows("Total OpEx",r=>r.opxT),mrows("NET PROFIT",r=>r.np),prow("Net margin %",r=>r.npPct,t=>t.npPct),[],
+    ["CASH FLOW (VAT included)",...mh,"Full year"],prow("Opening cash",r=>r.open,t=>t.open),mrows("Cash received from customers",r=>r.cashIn),mrows("Delivery costs paid",r=>r.cashDel),mrows("Purchases & bills paid",r=>r.cashBills),mrows("VAT paid to ZATCA",r=>r.cashVat),mrows("Equipment bought",r=>r.cashEq),mrows("Owner in/(out), loans & transfers",r=>r.cashFin),mrows("Net cash flow",r=>r.ncf),prow("CLOSING CASH",r=>r.close,t=>t.close),[],
+    ["VAT SUMMARY",...mh,"Full year"],mrows("VAT charged to customers",r=>r.vatOut),mrows("VAT paid on purchases",r=>r.vatIn),mrows("NET VAT PAYABLE",r=>r.vatNet)], [36,...mh.map(()=>10),12]);
+  add("Balance Sheet", [["As at", C.fyEndKey+" month end"],[],["ASSETS"],...b.accts.map(a=>[a.name,r2(a.bal)]),["Owed by customers",r2(b.recv)],["Equipment (at cost)",r2(b.equip)],["Transfers in transit",r2(b.transit)],["TOTAL ASSETS",r2(b.ta)],[],["LIABILITIES"],["VAT owed to / (due from) ZATCA",r2(b.vatL)],["Loans outstanding",r2(b.loans)],["TOTAL LIABILITIES",r2(b.tl)],[],["OWNER'S EQUITY"],["Opening balances",r2(b.opening)],["Capital put in",r2(b.cap)],["Drawings taken",r2(b.draw)],["Accumulated profit / (loss)",r2(b.acc)],["TOTAL EQUITY",r2(b.te)],["TOTAL LIABILITIES & EQUITY",r2(b.tle)],["Check",b.check]], [40,16]);
+  const qs=[0,1,2,3].map(q=>{ const ms=C.pl.slice(q*3,q*3+3); const o={label:"Q"+(q+1),start:ms[0].key,end:ms[2].key,sales:ms.reduce((a,r)=>a+r.rev,0),out:ms.reduce((a,r)=>a+r.vatOut,0),inn:ms.reduce((a,r)=>a+r.vatIn,0)}; o.net=o.out-o.inn; o.paid=-C.expenses.filter(e=>e.type==="VAT"&&e.m>=o.start&&e.m<=o.end).reduce((a,e)=>a+e.net,0); return o; });
+  add("VAT Return", [["","Q1","Q2","Q3","Q4","Full year"],["Period",...qs.map(q=>q.start+" → "+q.end),""],["Sales (excl. VAT)",...qs.map(q=>r2(q.sales)),r2(qs.reduce((a,q)=>a+q.sales,0))],["Output VAT",...qs.map(q=>r2(q.out)),r2(qs.reduce((a,q)=>a+q.out,0))],["Input VAT",...qs.map(q=>r2(q.inn)),r2(qs.reduce((a,q)=>a+q.inn,0))],["Net VAT due",...qs.map(q=>r2(q.net)),r2(qs.reduce((a,q)=>a+q.net,0))],["Paid to ZATCA",...qs.map(q=>r2(q.paid)),r2(qs.reduce((a,q)=>a+q.paid,0))]], [24,14,14,14,14,14]);
+  add("Customers", [["Customer","Phone","Area","First order","Last order","Days since","Orders","Spent incl. VAT","Avg order","Favourite item","Occasion","Tags","Notes"], ...C.custs.map(c=>[c.name,c.phone||"",c.area||"",c.first,c.last,c.days,c.n,r2(c.spent),r2(c.aov),c.fav,c.occasion||"",c.tags||"",c.notes||""])], [22,14,16,12,12,10,8,14,10,24,16,10,24]);
+  add("Menu & Pricing", [["Range","Group","Item","Menu price","Price ex-VAT","VAT","Price incl. VAT","Ingredient / contents cost","Packaging","Total cost","Contribution","Margin","Food cost %","Status"], ...C.menuList.map(m=>[m.range||"",m.group,m.name,r2(m.price),r2(m.priceEx),r2(m.vat),r2(m.priceInc),r2(m.cost),r2(m.pkg),r2(m.tuc),r2(m.con),r2(m.margin),r2(m.foodPct),m.status==="loses"?"Loses money":m.status==="below"?"Below target":"On target"])], [13,13,30,10,10,8,10,12,10,10,12,8,10,14]);
+  const rr=[["Item","Portions / batch","Packaging / unit","Ingredient","Unit","Qty / batch","Cost / unit","Line cost","Batch cost","Cost / portion","Total cost / unit"]];
+  S.recipes.forEach(r=>{ const rc=C.rec[r.name]||{}; (r.lines||[]).forEach((l,i)=>rr.push([i?"":r.name,i?"":N(r.portions),i?"":r2(N(r.packaging)),l.ing,C.ingUnit[l.ing]||"",N(l.qty),r2(C.ingCost[l.ing]),r2(N(l.qty)*(C.ingCost[l.ing]||0)),i?"":r2(rc.batch),i?"":r2(rc.cpp),i?"":r2(rc.tuc)])); });
+  add("Per-Item Cost", rr, [30,10,10,28,6,10,10,10,10,12,12]);
+  const br=[["Box","Occasion","Item","Qty","Unit cost","Item total","Other contents","Utensils","Box packaging","Total box cost","Price ex-VAT","Contribution","Margin"]];
+  S.boxes.forEach(bx=>{ const c=C.box[bx.name]||{}, m=C.menu[bx.name]; const items=(bx.items||[]).length?bx.items:[{item:"",qty:""}]; items.forEach((it,i)=>br.push([i?"":bx.name,i?"":bx.occasion||"",it.item,it.qty,r2((C.rec[it.item]||{}).tuc),r2(N(it.qty)*((C.rec[it.item]||{}).tuc||0)),i?"":r2(N(bx.manual)),i?"":r2(N(bx.utensils)),i?"":r2(N(bx.box)),i?"":r2(c.total),i?"":(m?r2(m.priceEx):null),i?"":(m?r2(m.priceEx-c.total):null),i?"":(m&&m.priceEx?r2((m.priceEx-c.total)/m.priceEx):null)])); });
+  add("Gathering Boxes", br, [20,24,28,6,10,10,12,10,12,12,12,12,8]);
+  add("Ingredient Costs", [["Ingredient","Category","Purchase unit","Pack size","Unit of measure","Purchase price","Cost / unit","Supplier / notes"], ...S.ingredients.map(i=>[i.name,i.cat||"",i.unit,N(i.pack),i.uom,r2(N(i.price)),r2(C.ingCost[i.name]),i.supplier||""])], [28,16,11,10,11,12,12,20]);
+  { const Z = C.zakat; add("Zakat & ZATCA", [["ZAKAT CALCULATION — as at", Z.asAt, Z.hijri],[],["Zakatable assets"],...Z.accts.map(a=>[a.name, r2(Math.max(0,a.bal))]),["Owed by customers", r2(Z.recv)],["Stock on hand", r2(Z.stock)],["Other zakatable assets", r2(Z.otherA)],["Total zakatable assets", r2(Z.assets)],[],["Less: due within the year"],["VAT owed to ZATCA", r2(Z.vatL)],["Loans", r2(Z.loans)],["Other payables", r2(Z.otherL)],["Total deductions", r2(Z.liab)],[],["Zakat base", r2(Z.base)],["Nisab", r2(Z.nisab)],["Rate", Z.rate],["Zakat due", r2(Z.due)],["Zakat paid", r2(Z.paid)],["Still to pay", r2(Z.remaining)],[],
+    ["FILINGS, PAYMENTS & CERTIFICATES"],["Date","Type","Period","Amount","Reference","Status","Due","Notes"], ...[...C.filings].reverse().map(f=>[f.date||"", f.type||"", f.period||"", r2(N(f.amount)), f.ref||"", f.status||"", f.due||"", f.notes||""]),[],
+    ["DEADLINES"],["What","Period","Due","Status"], ...C.deadlines.map(d=>[d.what, d.period, d.due, d.done? "Filed/Done" : (d.days<0? "Overdue":"Upcoming")])], [34,14,16,12,22,10,12,30]); }
+  add("Wastage", [["Date","Type","Item","Qty","Cost / unit","Waste cost","Reason","Preventable","Notes"], ...[...C.wastage].reverse().map(w=>[w.date,w.type,w.item,N(w.qty),r2(w.cpu),r2(w.cost),w.reason||"",w.preventable||"",w.notes||""])], [11,13,28,8,10,10,20,10,24]);
+  return wb;
+}
+async function exportExcel(){
+  if (!window.XLSX) { toast("Excel library didn't load — check your connection and reload", true); return; }
+  const btn = $("#xlsBtn"); btn.disabled = true;
+  try {
+    const wb = buildWorkbook(); const buf = window.XLSX.write(wb, {bookType:"xlsx", type:"array"});
+    const name = `FoFocaccia_Tracker_${today()}.xlsx`;
+    downloadBlob(new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), name); toast("Excel file saved");
+  } catch(e){ if (e && e.code==="declined") toast("Download cancelled"); else toast("Export failed: "+(e.message||e.code||e), true); }
+  btn.disabled = false;
+}
+$("#xlsBtn").addEventListener("click", exportExcel);
+$("#outBtn").addEventListener("click", () => window.FofoStore && window.FofoStore.signOut());
+boot();
+})();
+</script>
+
+</body></html>
+</body>
+</html>
