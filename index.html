@@ -28,7 +28,7 @@ h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance}
 .brand h1{font-size:22px;color:#fff}
 .brand small{opacity:.8}
 .brand .st{margin-left:auto;font-size:12px;opacity:.85}
-.brand #xlsBtn,.brand #outBtn{margin-bottom:0}
+.brand #xlsBtn{margin-bottom:0}
 .tabs{display:flex;gap:2px;overflow-x:auto;margin-top:8px;scrollbar-width:thin}
 .tabs button{flex:0 0 auto;background:transparent;border:0;color:#fff;opacity:.75;padding:8px 12px;border-radius:8px 8px 0 0;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
 .tabs button.on{background:var(--bg);color:var(--fg);opacity:1}
@@ -96,7 +96,7 @@ table.heat td,table.heat th{padding:5px 6px;font-size:12px;text-align:center}.go
 </head>
 <body>
 <div class="top">
-  <div class="brand"><h1>🫓 FoFocaccia</h1><small>business tracker &amp; accounts</small><span class="st" id="status">loading…</span><button class="btn sec" id="xlsBtn" style="padding:4px 10px;font-size:12px" title="Download everything as an Excel workbook">⬇ Excel</button><button class="btn sec" id="outBtn" style="padding:4px 10px;font-size:12px" hidden>Sign out</button></div>
+  <div class="brand"><h1>🫓 FoFocaccia</h1><small>business tracker &amp; accounts</small><span class="st" id="status">loading…</span><button class="btn sec" id="xlsBtn" style="padding:4px 10px;font-size:12px" title="Download everything as an Excel workbook">⬇ Excel</button></div>
   <div class="tabs" id="tabs"></div>
 </div>
 <main id="view"><div class="empty">Loading your data…</div></main>
@@ -477,9 +477,9 @@ function applySeed(){ // when nothing has been stored anywhere yet, start from t
 async function boot(){
   const tok = customerToken(); if (tok){ renderCustomer(tok); return; }
   const store = window.FofoStore;
-  if (store && store.configured){ // shared mode: sign in first, then everything comes from the shared database
-    $("#tabs").hidden = true; $("#xlsBtn").hidden = true; $("#status").textContent = "sign in to continue";
-    const conn = await store.connect(); db = conn.db; user = conn.email; $("#tabs").hidden = false; $("#xlsBtn").hidden = false; $("#outBtn").hidden = false; render();
+  if (store && store.configured){ // shared mode: everything comes from the shared database
+    renderTabs(); $("#status").textContent = "connecting…";
+    const conn = await store.connect(); db = conn.db;
   } else { // no database configured: keep data in this browser only
     try { Object.keys(docs).forEach(k=>{ const v = localStorage.getItem("fofo."+k); if(v){ const b=JSON.parse(v); if(k==="settings") S.settings=b; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; } });
       ["orders","expenses","wastage","customers","filings"].forEach(k=>{ const v=localStorage.getItem("fofo."+k); if(v) S[k]=JSON.parse(v); }); } catch(e){}
@@ -506,7 +506,7 @@ setInterval(()=>{ if (S._deferred && !editing()) render(); }, 800); if (location
 function render(){
   S._deferred = false;
   renderTabs();
-  $("#status").textContent = !S.ready ? "loading…" : (S.dbOn ? "✓ live · " + (user||"") : "⚠ no database configured — saving in this browser only");
+  $("#status").textContent = !S.ready ? "loading…" : (S.dbOn ? "✓ live — shared with everyone who has the link" : "⚠ no database configured — saving in this browser only");
   if (!S.settings) { $("#view").innerHTML = `<div class="empty">No settings yet. ${S.dbOn? "Waiting for the shared store…":""}</div>`; return; }
   C = calc();
   const v = views[S.tab] || views.dash; $("#view").innerHTML = v();
@@ -741,7 +741,7 @@ settings(){ const s=S.settings; return `<h2 style="font-size:22px">Settings</h2>
   <div class="panel"><h2>Receipts</h2><div class="form">${(()=>{ const rc = rcfg(); const I=(k,l,t="text",w=false)=>`<label class="${w?"wide":""}">${l} ${inp("settings.receipt."+k, rc[k], t)}</label>`; return I("business","Business name on receipt")+I("tagline","Tagline")+I("employee","Employee line")+I("pos","POS line")+I("handle","Footer handle")+I("phone","Phone (optional)")+I("address","Address (optional)")+I("vatNo","VAT number (blank if not registered)")+I("footer","Extra footer line")+I("prefix","Receipt number prefix")+I("nextNo","Next receipt number","number")+I("publicUrl","Public link of this page (for customer links)","url",true); })()}</div><p class="note">Delivery is charged outside VAT on receipts and in the accounts. With a VAT number set, receipts carry a ZATCA phase-1 QR code. Customer links need this page shared as "Anyone with the link".</p></div>
   <div class="panel"><h2>Money accounts & opening balances</h2><div class="tw"><table>${th(["Account","#Opening balance (SAR)",""])}${(s.accounts||[]).map((a,i)=>`<tr>${td(inp(`settings.accounts.${i}.name`,a.name))}${td(inp(`settings.accounts.${i}.opening`,a.opening,"number"),"n")}${td(`<button class="x" data-rm-acct="${i}">✕</button>`)}</tr>`).join("")}<tr>${td("<i>"+OWNER+"</i>")}${td("n/a","n")}${td("")}</tr></table></div><p class="note"><button class="btn sec" data-act="addAcct">+ Add account</button> · Use "${OWNER}" on an entry when you pay from your own pocket; it counts as capital you put in.</p></div></div>
   <div class="panel"><h2>Expense & money categories</h2><div class="tw"><table>${th(["Category","Type","VAT on purchases",""])}${(s.categories||[]).map((c,i)=>`<tr>${td(inp(`settings.categories.${i}.name`,c.name))}${td(sel(`settings.categories.${i}.type`,c.type,["Ingredients","Packaging","Operating","Equipment","Capital","Drawings","Loan","VAT","Transfer"]))}${td(sel(`settings.categories.${i}.vat`,c.vat,["Standard","Out of scope"]))}${td(`<button class="x" data-rm-cat="${i}">✕</button>`)}</tr>`).join("")}</table></div><p class="note"><button class="btn sec" data-act="addCat">+ Add category</button></p></div>
-  <div class="panel"><h2>Data</h2><p class="note">${S.dbOn? "Your data lives in the shared database; everyone who signs in sees and edits the same books." : "No database is configured (see config.js), so data is kept in this browser only."} Export a JSON backup any time.</p><div class="row"><button class="btn sec" data-act="export">Copy backup JSON</button><label class="btn sec" style="display:inline-block">Import backup <input type="file" id="importFile" accept="application/json" hidden></label></div><textarea id="exportBox" hidden style="width:100%;height:120px;margin-top:8px"></textarea></div>`; },
+  <div class="panel"><h2>Data</h2><p class="note">${S.dbOn? "Your data lives in the shared database; everyone with the link sees and edits the same books." : "No database is configured (see config.js), so data is kept in this browser only."} Export a JSON backup any time.</p><div class="row"><button class="btn sec" data-act="export">Copy backup JSON</button><label class="btn sec" style="display:inline-block">Import backup <input type="file" id="importFile" accept="application/json" hidden></label></div><textarea id="exportBox" hidden style="width:100%;height:120px;margin-top:8px"></textarea></div>`; },
 };
 
 // ---------------- editing ----------------
@@ -1007,7 +1007,6 @@ async function exportExcel(){
   btn.disabled = false;
 }
 $("#xlsBtn").addEventListener("click", exportExcel);
-$("#outBtn").addEventListener("click", () => window.FofoStore && window.FofoStore.signOut());
 boot();
 })();
 </script>
