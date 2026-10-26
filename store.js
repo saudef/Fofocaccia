@@ -43,7 +43,9 @@ function makeDb(){
         c.rows = new Map(data.map(r => [splitPath(r.path)[1], r.data])); emitColl(name); });
       return () => c.cbs.delete(cb); }
   });
-  return { doc, collection };
+  const bulkSet = async rows => { // [{path, data}] in chunks; used by the backup importer
+    for (let i = 0; i < rows.length; i += 200){ const part = rows.slice(i, i + 200); const { error } = await db.from("docs").upsert(part.map(r => ({ path: r.path, data: r.data })), { onConflict: "path" }); if (error) throw error; part.forEach(r => apply(r.path, r.data)); } };
+  return { doc, collection, bulkSet };
 }
 
 // ---------- sign-in screen ----------
