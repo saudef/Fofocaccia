@@ -144,7 +144,7 @@ const PAY_LABEL = {"Bank account":"Bank transfer","Cash on hand":"Cash","Payment
 function receiptOf(o){ // o = calculated order from C.orders
   const c = rcfg(); const rate = o.rate!=null ? o.rate : C.rate; const div = o.div || C.DIV;
   return {no:o.receiptNo||null, date:o.date, customer:o.customer||"", phone:o.phone||"", payment: PAY_LABEL[o.account]||o.account||"Paid", delivery:o.delivery!==false, fee:o.fee, disc:o.discN, notes:o.notes||"", payLink:o.payLink||"",
-    lines:o.items.map(i=>({name:i.label, qty:N(i.qty)||1, unit: i.custom ? N(i.price)/div : N((C.menu[i.item]||{}).price)/div})), net:o.net-o.feeN, vat:o.vat, total:o.total, rate, cfg:c}; }
+    lines:o.items.map(i=>({name:i.label, qty:N(i.qty)||1, unit: i.custom ? N(i.price)/div : N((C.menu[i.item]||{}).price)/div})), net:o.net, vat:o.vat, total:o.total, rate, cfg:c}; }
 function qrDataUrl(text, size){ const host = $("#qrhost"); host.innerHTML = ""; if (!window.QRCode) return null; try { new window.QRCode(host, {text, width:size, height:size, correctLevel: window.QRCode.CorrectLevel.M}); const cv = host.querySelector("canvas"); return cv ? cv.toDataURL("image/png") : null; } catch(e){ return null; } }
 function tlv(tag, str){ const b = new TextEncoder().encode(str); return [tag, b.length, ...b]; }
 function zatcaQr(c, R){ const ts = new Date(R.date||Date.now()).toISOString(); const bytes = [...tlv(1,c.business), ...tlv(2,c.vatNo||""), ...tlv(3,ts), ...tlv(4,R.total.toFixed(2)), ...tlv(5,R.vat.toFixed(2))]; let t=""; bytes.forEach(b=>t+=String.fromCharCode(b)); return btoa(t); }
@@ -246,12 +246,12 @@ function calc(){
     const sub = items.reduce((a,i)=>a+q(i)*pxOf(i),0);
     const fee = o.delivery===false ? 0 : (o.fee!=null && o.fee!=="" ? N(o.fee) : DF), delCost = o.delivery===false ? 0 : (o.delCost!=null && o.delCost!=="" ? N(o.delCost) : DC);
     const discN = N(o.discount)/oDiv, feeN = fee; // delivery is outside VAT
-    const net = sub-discN+feeN, vat = (sub-discN)*oRate, total = net+vat;
+    const net = sub-discN, vat = net*oRate, total = net+vat+feeN; // the delivery fee is collected for the driver: not revenue, paid out in full
     const received = o.status==="Unpaid" ? 0 : (o.status==="Partial" ? Math.min(N(o.paidAmt), total) : total);
     const units = items.reduce((a,i)=>a+q(i),0), loaves = items.reduce((a,i)=>a+((!i.custom && (menu[i.item]||{}).group==="Focaccia")?q(i):0),0);
     const ing = items.reduce((a,i)=>a+(i.custom?0:q(i)*((menu[i.item]||{}).cost||0)),0), pkg = items.reduce((a,i)=>a+(i.custom?0:q(i)*((menu[i.item]||{}).pkg||0)),0);
-    const varc = ing+pkg+delCost, con = net-varc;
-    return {...o, items, fee, delCost, discN, feeN, net, vat, total, received, balance: total-received, units, loaves, ing, pkg, varc, con, conPct: net? con/net:null, m: ym(o.date), prodNet: sub-discN, rate: oRate, div: oDiv};
+    const varc = ing+pkg, delNet = feeN-delCost, con = net-varc+delNet;
+    return {...o, items, fee, delCost, discN, feeN, delNet, net, vat, total, received, balance: total-received, units, loaves, ing, pkg, varc, con, conPct: net? con/net:null, m: ym(o.date), prodNet: sub-discN, rate: oRate, div: oDiv};
   };
   const orders = S.orders.map(enrich).sort((a,b)=> (a.date||"") < (b.date||"") ? 1 : -1);
   const expenses = S.expenses.map(e => {
@@ -270,8 +270,8 @@ function calc(){
     const byGroup = g => om.reduce((a,o)=>a+o.items.reduce((b,i)=>b+(i.custom?0:((N(i.qty)||1)*((menu[i.item]||{}).priceEx||0))*((((menu[i.item]||{}).group)||"Other")===g?1:0)),0),0);
     const r = {key:mo.key,label:mo.label, foc:byGroup("Focaccia"), pan:byGroup("Pantry"), box:byGroup("Gathering Box"), oth:0, disc:-om.reduce((a,o)=>a+o.discN,0), fee:om.reduce((a,o)=>a+o.feeN,0)};
     r.oth = om.reduce((a,o)=>a+o.prodNet+o.discN,0) - r.foc - r.pan - r.box;
-    r.rev = r.foc+r.pan+r.box+r.oth+r.disc+r.fee;
-    r.ing = om.reduce((a,o)=>a+o.ing,0); r.pkg = om.reduce((a,o)=>a+o.pkg,0); r.del = om.reduce((a,o)=>a+o.delCost,0); r.vc = r.ing+r.pkg+r.del; r.con = r.rev-r.vc; r.conPct = r.rev? r.con/r.rev:null;
+    r.rev = r.foc+r.pan+r.box+r.oth+r.disc; // delivery fees are not revenue: they pass through to the driver
+    r.ing = om.reduce((a,o)=>a+o.ing,0); r.pkg = om.reduce((a,o)=>a+o.pkg,0); r.del = om.reduce((a,o)=>a+o.delCost,0); r.delNet = r.fee-r.del; r.vc = r.ing+r.pkg; r.con = r.rev-r.vc+r.delNet; r.conPct = r.rev? r.con/r.rev:null;
     r.ingB = -em.filter(e=>e.type==="Ingredients").reduce((a,e)=>a+e.net,0); r.pkgB = -em.filter(e=>e.type==="Packaging").reduce((a,e)=>a+e.net,0);
     r.vari = r.ingB+r.pkgB-r.ing-r.pkg; r.waste = wm.reduce((a,w)=>a+w.cost,0); r.gp = r.con - r.vari; r.gpPct = r.rev? r.gp/r.rev:null;
     r.opx = {}; (st.categories||[]).filter(c=>c.type==="Operating").forEach(c=>{ r.opx[c.name] = -em.filter(e=>e.cat===c.name).reduce((a,e)=>a+e.net,0); });
@@ -290,7 +290,7 @@ function calc(){
     + orders.filter(o=>o.account!==OWNER && o.m<key).reduce((a,o)=>a+o.received-o.delCost,0)
     + expenses.filter(e=>e.account!==OWNER && e.m<key).reduce((a,e)=>a+e.gross,0);
   const chainCash = rows => { let c = cashBefore(rows[0].key); rows.forEach(r=>{ r.open=c; r.close=c+r.ncf; c=r.close; }); return rows; };
-  const totals = rows => { const tot = {}; ["foc","pan","box","oth","disc","fee","rev","ing","pkg","del","vc","con","ingB","pkgB","vari","waste","gp","opxT","np","orders","units","loaves","vatOut","vatIn","vatNet","cashIn","cashDel","cashBills","cashVat","cashEq","cashFin","ncf","goal","goalP"].forEach(k=>tot[k]=rows.reduce((a,r)=>a+r[k],0));
+  const totals = rows => { const tot = {}; ["foc","pan","box","oth","disc","fee","rev","ing","pkg","del","delNet","vc","con","ingB","pkgB","vari","waste","gp","opxT","np","orders","units","loaves","vatOut","vatIn","vatNet","cashIn","cashDel","cashBills","cashVat","cashEq","cashFin","ncf","goal","goalP"].forEach(k=>tot[k]=rows.reduce((a,r)=>a+r[k],0));
     tot.opx = {}; Object.keys(rows[0].opx).forEach(k=>tot.opx[k]=rows.reduce((a,r)=>a+r.opx[k],0));
     tot.conPct = tot.rev? tot.con/tot.rev:null; tot.gpPct = tot.rev? tot.gp/tot.rev:null; tot.npPct = tot.rev? tot.np/tot.rev:null; tot.aov = tot.orders? tot.rev/tot.orders:null;
     tot.open = rows[0].open; tot.close = rows[rows.length-1].close; tot.monthsActive = Math.max(1, rows.filter(r=>r.rev).length); return tot; };
@@ -316,8 +316,8 @@ function calc(){
   let mtd = 0;
   for (let k=0;k<366;k++){ const d = new Date(d0.getTime()+k*864e5); const key = d.toISOString().slice(0,10); if (k>0 && key.slice(0,7)>fyEndKey) break;
     const os = byDay[key]||[]; const dim = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+1, 0)).getUTCDate();
-    const rev = os.reduce((a,o)=>a+o.net,0), ing = os.reduce((a,o)=>a+o.ing,0), pkg = os.reduce((a,o)=>a+o.pkg,0), del = os.reduce((a,o)=>a+o.delCost,0);
-    const con = rev-ing-pkg-del, fixed = (opxByM[key.slice(0,7)]||0)/dim; if (d.getUTCDate()===1) mtd = 0; mtd += rev;
+    const rev = os.reduce((a,o)=>a+o.net,0), ing = os.reduce((a,o)=>a+o.ing,0), pkg = os.reduce((a,o)=>a+o.pkg,0), del = os.reduce((a,o)=>a+o.delCost,0), fee = os.reduce((a,o)=>a+o.feeN,0);
+    const con = rev-ing-pkg+fee-del, fixed = (opxByM[key.slice(0,7)]||0)/dim; if (d.getUTCDate()===1) mtd = 0; mtd += rev;
     daily.push({key, dow:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getUTCDay()], orders:os.length, units:os.reduce((a,o)=>a+o.units,0), loaves:os.reduce((a,o)=>a+o.loaves,0), rev, disc:os.reduce((a,o)=>a+o.discN,0), ing, pkg, del, con, conPct: rev? con/rev:null, fixed, profit: con-fixed, mtd});
   }
   // items
@@ -333,7 +333,7 @@ function calc(){
     const vatL = o.reduce((s,x)=>s+x.vat,0)+e.reduce((s,x)=>s+x.vat,0)+et("VAT"), loans = et("Loan"), tl = vatL+loans;
     const opening = (st.accounts||[]).reduce((s,a)=>s+N(a.opening),0);
     const cap = et("Capital") - e.filter(x=>x.account===OWNER).reduce((s,x)=>s+x.gross,0) - o.filter(x=>x.account===OWNER).reduce((s,x)=>s+x.received-x.delCost,0);
-    const draw = et("Drawings"); const acc = o.reduce((s,x)=>s+x.net-x.delCost,0)+et("Ingredients")+et("Packaging")+et("Operating");
+    const draw = et("Drawings"); const acc = o.reduce((s,x)=>s+x.net+x.feeN-x.delCost,0)+et("Ingredients")+et("Packaging")+et("Operating");
     const te = opening+cap+draw+acc; return {accts, recv, equip, transit, ta, vatL, loans, tl, opening, cap, draw, acc, te, tle: tl+te, check: Math.round((ta-tl-te)*100)/100};
   };
   // customers
@@ -637,8 +637,9 @@ items(){ return `<div class="row"><h2 style="font-size:22px">Item sales tracker<
 pl(){ const t=C.tot; const opx = Object.keys(C.pl[0].opx);
   return `<h2 style="font-size:22px">P&L, cash flow & VAT</h2><p class="sub">Excluding VAT. Built from the orders, expenses and wastage you logged.</p>
   <div class="panel"><h2>Profit & loss</h2><div class="tw"><table>${monthHdr("Line item")}
-  <tr class="sec">${td("Revenue")}${td("",`colspan="13"`)}</tr>${mrow("Focaccia sales",r=>r.foc)}${mrow("Pantry sales",r=>r.pan)}${mrow("Gathering box sales",r=>r.box)}${mrow("Other sales",r=>r.oth)}${mrow("Less: discounts",r=>r.disc)}${mrow("Delivery fees charged",r=>r.fee)}${mrow("Net revenue",r=>r.rev,"tot")}
-  <tr class="sec">${td("Variable costs (per recipe, for what you sold)")}${td("",`colspan="13"`)}</tr>${mrow("Ingredient costs",r=>r.ing)}${mrow("Packaging costs",r=>r.pkg)}${mrow("Delivery costs",r=>r.del)}${mrow("Total variable costs",r=>r.vc,"tot")}${mrow("CONTRIBUTION",r=>r.con,"key")}${mrow("Contribution margin %",r=>r.conPct,"",np,t=>t.conPct)}
+  <tr class="sec">${td("Revenue")}${td("",`colspan="13"`)}</tr>${mrow("Focaccia sales",r=>r.foc)}${mrow("Pantry sales",r=>r.pan)}${mrow("Gathering box sales",r=>r.box)}${mrow("Other sales",r=>r.oth)}${mrow("Less: discounts",r=>r.disc)}${mrow("Net revenue",r=>r.rev,"tot")}
+  <tr class="sec">${td("Variable costs (per recipe, for what you sold)")}${td("",`colspan="13"`)}</tr>${mrow("Ingredient costs",r=>r.ing)}${mrow("Packaging costs",r=>r.pkg)}${mrow("Total variable costs",r=>r.vc,"tot")}
+  <tr class="sec">${td("Delivery (pass-through to the driver)")}${td("",`colspan="13"`)}</tr>${mrow("Delivery fees collected",r=>r.fee)}${mrow("Paid to driver",r=>-r.del)}${mrow("Delivery net",r=>r.delNet,"tot")}${mrow("CONTRIBUTION",r=>r.con,"key")}${mrow("Contribution margin %",r=>r.conPct,"",np,t=>t.conPct)}
   <tr class="sec">${td("Wastage & purchase variance")}${td("",`colspan="13"`)}</tr>${mrow("Ingredients actually bought",r=>r.ingB)}${mrow("Packaging actually bought",r=>r.pkgB)}${mrow("Variance: bought − used per recipe",r=>r.vari,"tot")}${mrow("memo: wastage logged",r=>r.waste)}${mrow("GROSS PROFIT",r=>r.gp,"key")}${mrow("Gross margin %",r=>r.gpPct,"",np,t=>t.gpPct)}
   <tr class="sec">${td("Operating expenses")}${td("",`colspan="13"`)}</tr>${opx.map(k=>mrow(esc(k),r=>r.opx[k])).join("")}${mrow("Total OpEx",r=>r.opxT,"tot")}${mrow("NET PROFIT",r=>r.np,"key")}${mrow("Net margin %",r=>r.npPct,"",np,t=>t.npPct)}
   </table></div><p class="note">Positive variance = waste, over-portioning, or stock bought ahead. Labour and overhead are not inside recipe costs; log what you pay in Expenses.</p></div>
@@ -981,8 +982,8 @@ function buildWorkbook(){
   add("Yearly Overview", [["Metric",...C.years.map(y=>y.label)],["Orders",...C.years.map(y=>y.orders)],["Units sold",...C.years.map(y=>y.units)],["Loaves sold",...C.years.map(y=>y.loaves)],["Net revenue",...C.years.map(y=>r2(y.rev))],["Revenue growth",...C.years.map(y=>r2(y.growth))],["Variable costs",...C.years.map(y=>r2(y.vc))],["Contribution",...C.years.map(y=>r2(y.con))],["Contribution margin",...C.years.map(y=>r2(y.conPct))],["Wastage & variance",...C.years.map(y=>r2(y.vari))],["Operating expenses",...C.years.map(y=>r2(y.opx))],["Net profit",...C.years.map(y=>r2(y.np))],["Net margin",...C.years.map(y=>r2(y.npPct))],["Avg order value",...C.years.map(y=>r2(y.aov))]], [22,14,14,14]);
   add("Item Tracker", [["Range","Item","Price ex-VAT",...mh,"Total units","Net sales","Est. contribution","Rank"], ...C.items.map(i=>[i.range||"",i.name,r2(i.priceEx),...i.per,i.units,r2(i.sales),r2(i.est),i.rank||""])], [13,30,10,...mh.map(()=>6),10,12,14,6]);
   const opx = Object.keys(C.pl[0].opx);
-  add("P&L & Cash Flow", [["PROFIT & LOSS (excl. VAT)",...mh,"Full year"],["REVENUE"],mrows("Focaccia sales",r=>r.foc),mrows("Pantry sales",r=>r.pan),mrows("Gathering box sales",r=>r.box),mrows("Other sales",r=>r.oth),mrows("Less: discounts",r=>r.disc),mrows("Delivery fees charged",r=>r.fee),mrows("Net revenue",r=>r.rev),[],
-    ["VARIABLE COSTS"],mrows("Ingredient costs",r=>r.ing),mrows("Packaging costs",r=>r.pkg),mrows("Delivery costs",r=>r.del),mrows("Total variable costs",r=>r.vc),mrows("CONTRIBUTION",r=>r.con),prow("Contribution margin %",r=>r.conPct,t=>t.conPct),[],
+  add("P&L & Cash Flow", [["PROFIT & LOSS (excl. VAT)",...mh,"Full year"],["REVENUE"],mrows("Focaccia sales",r=>r.foc),mrows("Pantry sales",r=>r.pan),mrows("Gathering box sales",r=>r.box),mrows("Other sales",r=>r.oth),mrows("Less: discounts",r=>r.disc),mrows("Net revenue",r=>r.rev),[],
+    ["VARIABLE COSTS"],mrows("Ingredient costs",r=>r.ing),mrows("Packaging costs",r=>r.pkg),mrows("Total variable costs",r=>r.vc),[],["DELIVERY (PASS-THROUGH TO THE DRIVER)"],mrows("Delivery fees collected",r=>r.fee),mrows("Paid to driver",r=>-r.del),mrows("Delivery net",r=>r.delNet),mrows("CONTRIBUTION",r=>r.con),prow("Contribution margin %",r=>r.conPct,t=>t.conPct),[],
     ["WASTAGE & PURCHASE VARIANCE"],mrows("Ingredients actually bought",r=>r.ingB),mrows("Packaging actually bought",r=>r.pkgB),mrows("Variance: bought − used per recipe",r=>r.vari),mrows("memo: wastage logged",r=>r.waste),mrows("GROSS PROFIT",r=>r.gp),prow("Gross margin %",r=>r.gpPct,t=>t.gpPct),[],
     ["OPERATING EXPENSES"],...opx.map(k=>mrows(k,r=>r.opx[k])),mrows("Total OpEx",r=>r.opxT),mrows("NET PROFIT",r=>r.np),prow("Net margin %",r=>r.npPct,t=>t.npPct),[],
     ["CASH FLOW (VAT included)",...mh,"Full year"],prow("Opening cash",r=>r.open,t=>t.open),mrows("Cash received from customers",r=>r.cashIn),mrows("Delivery costs paid",r=>r.cashDel),mrows("Purchases & bills paid",r=>r.cashBills),mrows("VAT paid to ZATCA",r=>r.cashVat),mrows("Equipment bought",r=>r.cashEq),mrows("Owner in/(out), loans & transfers",r=>r.cashFin),mrows("Net cash flow",r=>r.ncf),prow("CLOSING CASH",r=>r.close,t=>t.close),[],
