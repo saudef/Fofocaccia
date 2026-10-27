@@ -488,9 +488,11 @@ async function boot(){
     render();
   }
   if (db){ S.dbOn = true; S.canWrite = true;
-    Object.entries(docs).forEach(([k,p]) => db.doc(p).onSnapshot(snap => { if(!snap.exists) return; const b = JSON.parse(JSON.stringify(snap.data())); if(k==="settings") S.settings={...DEFAULT_SETTINGS,...b}; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; S.ready=true; renderSoon(); }, e=>console.warn(k,e)));
+    let pendingDocs = Object.keys(docs).length; // seed only once every config doc has answered and settings is truly absent
+    const firstLoad = () => { if (pendingDocs<=0 || --pendingDocs>0) return; S.ready=true; if (!S.settings) applySeed(); render(); };
+    Object.entries(docs).forEach(([k,p]) => db.doc(p).onSnapshot(snap => { if(snap.exists){ const b = JSON.parse(JSON.stringify(snap.data())); if(k==="settings") S.settings={...DEFAULT_SETTINGS,...b}; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; } if (pendingDocs>0) firstLoad(); else if (snap.exists) renderSoon(); }, e=>{ console.warn(k,e); if (pendingDocs>0) firstLoad(); }));
     ["orders","expenses","wastage","customers","filings"].forEach(c => db.collection(c).onSnapshot(snap => { S[c] = snap.docs.map(d=>({id:d.id, ...JSON.parse(JSON.stringify(d.data()))})); renderSoon(); }, e=>console.warn(c,e)));
-    setTimeout(()=>{ S.ready=true; applySeed(); render(); }, 2500); // an empty database starts from the seed, saved so everyone shares it
+    setTimeout(()=>{ if (!S.ready){ S.ready=true; render(); } }, 20000); // never seed on a timeout: a slow load must not overwrite saved data
   } else { S.ready=true; applySeed(); render(); }
 }
 
