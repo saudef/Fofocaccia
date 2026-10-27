@@ -167,7 +167,7 @@ function drawReceipt(canvas, R){ canvas._R = R; const c = R.cfg; const ctx = can
   y += 22; rule(); y += 34; T(R.delivery ? "Delivery" : "Pickup", pad, 17, {w:700}); y += 22; rule();
   R.lines.forEach(l => { y += 34; pair(fit(l.name, W-2*pad-150, `400 17px ${FONT}`), f2(l.qty*l.unit)+" SAR"); y += 24; T(`${l.qty} × ${f2(l.unit)} SAR`, pad, 14, {col:"#888"}); y += 8; });
   if (R.disc){ y += 34; pair("Discount", "-"+f2(R.disc)+" SAR"); y += 8; }
-  y += 24; rule(); y += 34; pair("Total before VAT", f2(R.net)+" SAR", {w:700}); y += 27; pair(`VAT, ${Math.round(R.rate*100)}%`, f2(R.vat)+" SAR");
+  y += 24; rule(); y += 34; pair(R.rate ? "Total before VAT" : "Subtotal", f2(R.net)+" SAR", {w:700}); if (R.rate){ y += 27; pair(`VAT, ${Math.round(R.rate*100)}%`, f2(R.vat)+" SAR"); }
   if (R.fee){ y += 27; pair("Delivery (no VAT)", f2(R.fee)+" SAR"); }
   y += 22; rule(); y += 34; pair("Total", f2(R.total)+" SAR", {w:700}); y += 22; rule(); y += 34; pair(R.payment||"Paid", f2(R.total)+" SAR");
   if (R.notes){ y += 30; T(fit("Note: "+R.notes, W-2*pad, `400 15px ${FONT}`), pad, 15, {col:"#777"}); }
@@ -186,7 +186,7 @@ async function unpackReceipt(tok){ let bytes = unb64u(tok.slice(1)); if (tok[0]=
   return {no:o.n, date:o.d, customer:o.c, phone:o.p, payment:o.y, delivery:!!o.f, fee:o.e||0, disc:o.x||0, notes:o.t, payLink:o.l, lines, net, vat, total:net+vat+(o.e||0), rate:o.r, cfg:{...RDEF, ...o.b}}; }
 function customerToken(){ const m = (location.hash||"").match(/^#v~([A-Za-z0-9_-]+)$/); return m ? m[1] : null; }
 async function customerLink(R){ return (rcfg().publicUrl||PUBLIC_URL).replace(/#.*$/,"") + "#v~" + await packReceipt(R); }
-function receiptText(R){ return [`${R.cfg.business} — Receipt #${R.no||""}`, `Date: ${R.date}`, R.customer? `Customer: ${R.customer}`:"", R.delivery?"Delivery":"Pickup", "", ...R.lines.map(l=>`${l.name}  ${f2(l.qty*l.unit)} SAR  (${l.qty} × ${f2(l.unit)})`), R.disc? `Discount  -${f2(R.disc)} SAR`:"", "", `Total before VAT: ${f2(R.net)} SAR`, `VAT ${Math.round(R.rate*100)}%: ${f2(R.vat)} SAR`, R.fee? `Delivery (no VAT): ${f2(R.fee)} SAR`:"", `Total: ${f2(R.total)} SAR`, `${R.payment}: ${f2(R.total)} SAR`, "", R.cfg.handle||""].join("\n"); }
+function receiptText(R){ return [`${R.cfg.business} — Receipt #${R.no||""}`, `Date: ${R.date}`, R.customer? `Customer: ${R.customer}`:"", R.delivery?"Delivery":"Pickup", "", ...R.lines.map(l=>`${l.name}  ${f2(l.qty*l.unit)} SAR  (${l.qty} × ${f2(l.unit)})`), R.disc? `Discount  -${f2(R.disc)} SAR`:"", "", R.rate ? `Total before VAT: ${f2(R.net)} SAR` : `Subtotal: ${f2(R.net)} SAR`, R.rate ? `VAT ${Math.round(R.rate*100)}%: ${f2(R.vat)} SAR` : "", R.fee? `Delivery (no VAT): ${f2(R.fee)} SAR`:"", `Total: ${f2(R.total)} SAR`, `${R.payment}: ${f2(R.total)} SAR`, "", R.cfg.handle||""].join("\n"); }
 async function copyText(txt, msg){ try{ await navigator.clipboard.writeText(txt); toast(msg); }catch(e){ const ta=document.createElement("textarea"); ta.value=txt; ta.style.cssText="width:100%;height:120px;margin-top:8px"; ($("#rcBox")||document.body).appendChild(ta); ta.select(); toast("Select and copy the text"); setTimeout(()=>ta.remove(),15000); } }
 function downloadBlob(data, filename){ const url = URL.createObjectURL(data); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); }
 async function saveCanvas(cv, kind, name){ try { let data, filename;
