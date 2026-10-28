@@ -52,3 +52,11 @@ Sign-in needs the page to be served over http(s), not opened as a file, because 
 ## Backups
 
 Settings → **Copy backup JSON** copies everything; **Import backup** restores it. The Excel button in the header downloads a workbook with every sheet. In Supabase, **Database → Backups** keeps daily backups on paid plans; on the free plan use the JSON backup now and then.
+
+## Saudi VAT / ZATCA behaviour
+
+- VAT is charged only on orders dated on or after **Settings → VAT applies from** (the date on the VAT certificate). Earlier orders and quarters carry no VAT and need no return.
+- The delivery fee carries VAT (KSA treats a seller's delivery charge as part of the supply). Switch it off under Settings → Business & VAT if your accountant advises otherwise.
+- Receipts are bilingual **simplified tax invoices** with the seller's VAT and CR numbers, address, date and time, a Code128 barcode and the ZATCA phase-1 QR. Add a buyer VAT number on the order to issue a full **tax invoice**.
+- Issued invoices are locked. To cancel or correct one, open its receipt and press **Issue credit note**: a numbered `CN-…` note reverses it in full, then record a corrected order.
+- Records must be kept for 6 years. The dashboard warns when no backup has been taken for 30 days; Copy backup JSON and the Excel export both count as a backup.
