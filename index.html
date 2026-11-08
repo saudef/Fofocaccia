@@ -126,7 +126,7 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 // ---------------- state ----------------
-const S = { settings:null, ingredients:[], recipes:[], boxes:[], menu:[], suppliers:[], goals:{}, orders:[], expenses:[], wastage:[], customers:[], filings:[], tab:"dash", ready:false, canWrite:true, dbOn:false };
+const S = { settings:null, ingredients:[], recipes:[], boxes:[], menu:[], suppliers:[], goals:{}, orders:[], expenses:[], wastage:[], customers:[], filings:[], weborders:[], tab:"dash", ready:false, canWrite:true, dbOn:false };
 let db = null, user = null;
 const DEFAULT_SETTINGS = {business:"FoFocaccia",fyStart:"2026-01-01",vatRegistered:true,vatFrom:"2026-10-01",vatRate:0.15,pricesInclVat:false,deliveryVat:true,targetMargin:0.5,sellingDays:26,deliveryFee:40,deliveryCost:40,
   accounts:[{name:"Bank account",opening:0},{name:"Cash on hand",opening:0},{name:"Payment links / card",opening:0},{name:"Other wallet",opening:0}],
@@ -509,21 +509,21 @@ async function boot(){
     const conn = await store.connect(); db = conn.db; user = conn.email; $("#tabs").hidden = false; $("#xlsBtn").hidden = false; $("#outBtn").hidden = false; render();
   } else { // no database configured: keep data in this browser only
     try { Object.keys(docs).forEach(k=>{ const v = localStorage.getItem("fofo."+k); if(v){ const b=JSON.parse(v); if(k==="settings") S.settings=b; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; } });
-      ["orders","expenses","wastage","customers","filings"].forEach(k=>{ const v=localStorage.getItem("fofo."+k); if(v) S[k]=JSON.parse(v); }); } catch(e){}
+      ["orders","expenses","wastage","customers","filings","weborders"].forEach(k=>{ const v=localStorage.getItem("fofo."+k); if(v) S[k]=JSON.parse(v); }); } catch(e){}
     render();
   }
   if (db){ S.dbOn = true; S.canWrite = true;
     let pendingDocs = Object.keys(docs).length; // seed only once every config doc has answered and settings is truly absent
     const firstLoad = () => { if (pendingDocs<=0 || --pendingDocs>0) return; S.ready=true; if (!S.settings) applySeed(); render(); };
     Object.entries(docs).forEach(([k,p]) => db.doc(p).onSnapshot(snap => { if(snap.exists){ const b = JSON.parse(JSON.stringify(snap.data())); if(k==="settings") S.settings={...DEFAULT_SETTINGS,...b}; else if(k==="goals") S.goals=b.months||{}; else S[k]=b.items||[]; } if (pendingDocs>0) firstLoad(); else if (snap.exists) renderSoon(); }, e=>{ console.warn(k,e); if (pendingDocs>0) firstLoad(); }));
-    ["orders","expenses","wastage","customers","filings"].forEach(c => db.collection(c).onSnapshot(snap => { S[c] = snap.docs.map(d=>({id:d.id, ...JSON.parse(JSON.stringify(d.data()))})); renderSoon(); }, e=>console.warn(c,e)));
+    ["orders","expenses","wastage","customers","filings","weborders"].forEach(c => db.collection(c).onSnapshot(snap => { S[c] = snap.docs.map(d=>({id:d.id, ...JSON.parse(JSON.stringify(d.data()))})); renderSoon(); }, e=>console.warn(c,e)));
     setTimeout(()=>{ if (!S.ready){ S.ready=true; render(); } }, 20000); // never seed on a timeout: a slow load must not overwrite saved data
   } else { S.ready=true; applySeed(); render(); }
 }
 
 // ---------------- UI ----------------
-const TABS = [["dash","📊 Dashboard"],["cashier","🧾 Cashier"],["orders","📋 Orders"],["expenses","💸 Expenses"],["daily","📅 Daily"],["monthly","📊 Monthly"],["yearly","📈 Yearly"],["items","🍞 Items"],["pl","💳 P&L & Cash"],["bs","🏦 Balance Sheet"],["vat","🧾 VAT"],["zakat","🕌 Zakat & ZATCA"],["customers","👥 Customers"],["menu","💰 Menu & Pricing"],["recipes","🧾 Recipes"],["boxes","🎁 Boxes"],["ingredients","🧂 Ingredients"],["batch","🛒 Batch & Shopping"],["goals","🎯 Goals"],["wastage","🗑️ Wastage"],["settings","⚙️ Settings"]];
-function renderTabs(){ $("#tabs").innerHTML = TABS.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-tab="${k}">${l}</button>`).join(""); }
+const TABS = [["dash","📊 Dashboard"],["cashier","🧾 Cashier"],["orders","📋 Orders"],["web","🌐 Web orders"],["expenses","💸 Expenses"],["daily","📅 Daily"],["monthly","📊 Monthly"],["yearly","📈 Yearly"],["items","🍞 Items"],["pl","💳 P&L & Cash"],["bs","🏦 Balance Sheet"],["vat","🧾 VAT"],["zakat","🕌 Zakat & ZATCA"],["customers","👥 Customers"],["menu","💰 Menu & Pricing"],["recipes","🧾 Recipes"],["boxes","🎁 Boxes"],["ingredients","🧂 Ingredients"],["batch","🛒 Batch & Shopping"],["goals","🎯 Goals"],["wastage","🗑️ Wastage"],["settings","⚙️ Settings"]];
+function renderTabs(){ const nw = (S.weborders||[]).filter(w=>(w.status||"new")==="new").length; $("#tabs").innerHTML = TABS.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-tab="${k}">${l}${k==="web" && nw ? ` <span class="pill warn" style="padding:0 6px;margin-left:4px">${nw}</span>` : ""}</button>`).join(""); }
 $("#tabs").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; S.tab = b.dataset.tab; try{localStorage.setItem("fofo.tab",S.tab);}catch(x){} render(); window.scrollTo(0,0); });
 
 let C;
@@ -620,6 +620,19 @@ dash(){ const D=C.dash, X=C.dx, t=D.tot, b=C.bs(D.to+"-31"); const losing = C.me
   <div class="panel"><h2>Monthly performance</h2><div class="tw"><table>${th(["Month","#Target","#Net revenue","#vs target","#Contribution","#Contrib %","#OpEx","#Net profit","#Net margin","#Orders","#Avg order","#Cash at month end"])}
   ${D.pl.filter(r=>!life || r.rev || r.orders || r.opxT || r.key>=C.months[0].key).map(r=>`<tr>${td(r.label)}${n0(r.goal)}${n0(r.rev)}${td(r.goal? pct(r.rev/r.goal):"–","n "+(r.goal&&r.rev<r.goal?"neg":""))}${n0(r.con)}${np(r.conPct)}${n0(r.opxT)}${n0(r.np)}${np(r.npPct)}${ni(r.orders)}${n0(r.aov)}${n0(r.close)}</tr>`).join("")}
   <tr class="tot">${td("TOTAL")}${n0(t.goal)}${n0(t.rev)}${td(t.goal?pct(t.rev/t.goal):"–","n")}${n0(t.con)}${np(t.conPct)}${n0(t.opxT)}${n0(t.np)}${np(t.npPct)}${ni(t.orders)}${n0(t.aov)}${n0(t.close)}</tr></table></div></div>`; },
+
+web(){ const list = [...(S.weborders||[])].sort((a,b)=> String(b.created_at||"").localeCompare(String(a.created_at||""))); const fresh = list.filter(w=>(w.status||"new")==="new"), done = list.filter(w=>(w.status||"new")!=="new");
+  const when = iso => { if(!iso) return ""; const d = new Date(iso); return isNaN(d) ? esc(String(iso)) : d.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}); };
+  const wa = w => { const p = String((w.customer||{}).phone||"").replace(/\D/g,""); if(!p) return ""; const n = p.startsWith("966") ? p : (p.startsWith("0") ? "966"+p.slice(1) : p); const txt = `Hi${(w.customer||{}).name? " "+String(w.customer.name).trim():""}, thank you for your FoFocaccia order ${w.ref||w.id}. `; return `<a class="btn sec" style="padding:4px 10px" target="_blank" rel="noopener" href="https://wa.me/${n}?text=${encodeURIComponent(txt)}">💬 WhatsApp</a>`; };
+  const card = w => `<div class="card" style="display:grid;gap:8px">
+    <div class="row" style="align-items:baseline"><b style="font-size:16px;letter-spacing:.03em">${esc(w.ref||w.id)}</b><span class="note">${when(w.created_at)}</span><span class="grow"></span>${(w.status||"new")==="new" ? `<span class="pill warn">New</span>` : w.status==="accepted" ? `<span class="pill ok">Accepted${w.receiptNo? " · "+esc(w.receiptNo):""}</span>` : `<span class="pill">Dismissed</span>`}</div>
+    <div class="kv" style="grid-template-columns:auto 1fr"><span>Customer</span><b>${esc((w.customer||{}).name||"—")}${(w.customer||{}).phone? ` · <span dir="ltr">${esc(w.customer.phone)}</span>`:""}</b><span>For</span><b>${esc(w.date||"—")} · ${w.fulfilment==="pickup"?"Pickup":"Delivery"}${w.area? " · "+esc(w.area):""}</b>${w.notes?`<span>Notes</span><b style="font-weight:400">${esc(w.notes)}</b>`:""}</div>
+    <table><tr><th>Item</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Total</th></tr>${(w.items||[]).map(i=>`<tr><td>${esc(i.name||"")}${i.kind==="pantry"?" <span class='note'>(jar)</span>":i.kind==="set"?" <span class='note'>(basket)</span>":""}</td>${td(esc(String(i.qty||1)),"n")}${n2(N(i.unit_price))}${n2(N(i.total))}</tr>`).join("")}<tr class="tot"><td>Subtotal (ex-VAT, as shown on the site)</td><td></td><td></td>${n2(N(w.subtotal))}</tr></table>
+    <div class="row">${canW() && (w.status||"new")==="new" ? `<button class="btn" data-act="webAccept" data-ref="${esc(w.id)}">Accept → new order</button><button class="btn sec" data-act="webDismiss" data-ref="${esc(w.id)}">Dismiss</button>` : ""}${wa(w)}${w.message? `<details style="font-size:12px;flex-basis:100%"><summary class="note" style="cursor:pointer">Message as sent from the site</summary><pre style="white-space:pre-wrap;font:inherit;margin:6px 0 0">${esc(w.message)}</pre></details>`:""}</div></div>`;
+  return `<div class="row"><h2 style="font-size:22px">Web orders</h2><span class="grow"></span><span class="note">${fresh.length} new · ${done.length} handled</span></div>
+  <p class="sub">Orders customers sent from the website. Each lands here the moment they tap "Send order on WhatsApp"; the WhatsApp message is still the order, this is your copy of it. Accept opens the normal order form prefilled with the items, so receipts, VAT and customer memory work as usual.</p>
+  ${fresh.length ? `<div class="cards">${fresh.map(card).join("")}</div>` : `<div class="empty">No new web orders.</div>`}
+  ${done.length ? `<details style="margin-top:14px"><summary class="note" style="cursor:pointer">Handled (${done.length})</summary><div class="cards" style="margin-top:10px">${done.slice(0,60).map(card).join("")}</div></details>` : ""}`; },
 
 orders(){ const q = (S.q||"").toLowerCase(); const list = C.orders.filter(o=>!q || JSON.stringify(o).toLowerCase().includes(q));
   return `<div class="row"><h2 style="font-size:22px">Order tracker</h2><span class="grow"></span><input id="q" placeholder="Search customer, item, date…" value="${esc(S.q||"")}"> ${canW()?`<button class="btn" data-act="newOrder">+ New order</button>`:""}</div>
@@ -828,6 +841,8 @@ async function onClick(e){
   const sc = e.target.closest("[data-scope]"); if (sc){ S.dashScope = sc.dataset.scope; try{localStorage.setItem("fofo.scope",S.dashScope);}catch(x){} render(); return; }
   const b = e.target.closest("button,[data-edit]"); if(!b) return;
   const d = b.dataset;
+  if (d.act==="webAccept"){ const w = (S.weborders||[]).find(x=>x.id===d.ref); if (!w) return; return openForm("orders", webToOrder(w)); }
+  if (d.act==="webDismiss"){ return confirmBox("Dismiss this web order? It stays listed under Handled.", ()=>markWebOrder(d.ref, "dismissed")); }
   if (d.act==="newOrder") return openForm("orders", {date:today(), items:[{item:"",qty:1}], status:"Paid", delivery:true, account:(S.settings.accounts[0]||{}).name||""});
   if (d.act==="newExpense") return openForm("expenses", {date:today(), cat:"Ingredients", account:(S.settings.accounts[0]||{}).name||""});
   if (d.act==="newCustomer") return openForm("customers", {});
@@ -858,9 +873,9 @@ async function onClick(e){
   if (d.act==="export"){ const data = {settings:S.settings, ingredients:S.ingredients, recipes:S.recipes, boxes:S.boxes, menu:S.menu, suppliers:S.suppliers, goals:S.goals, orders:S.orders, expenses:S.expenses, wastage:S.wastage, customers:S.customers, filings:S.filings}; const txt=JSON.stringify(data,null,1); const box=$("#exportBox"); box.hidden=false; box.value=txt; S.settings.lastBackup = today(); saveConfig("settings"); try{ await navigator.clipboard.writeText(txt); toast("Backup copied to clipboard"); }catch(x){ box.select(); toast("Select the text and copy it"); } }
 }
 async function importAll(d){ for (const k of ["settings","ingredients","recipes","boxes","menu","suppliers"]) if (d[k]) { S[k]=d[k]; saveConfig(k); } if (d.goals){ S.goals=d.goals; saveConfig("goals"); }
-  if (db && db.bulkSet){ const rows = []; for (const c of ["orders","expenses","wastage","customers","filings"]) for (const row of (d[c]||[])){ const id = row.id || uid(); const body = {...row}; delete body.id; rows.push({path:c+"/"+id, data:JSON.parse(JSON.stringify(body))}); const list = S[c]; const i = list.findIndex(x=>x.id===id); if (i>=0) list[i] = {...body, id}; else list.push({...body, id}); }
+  if (db && db.bulkSet){ const rows = []; for (const c of ["orders","expenses","wastage","customers","filings","weborders"]) for (const row of (d[c]||[])){ const id = row.id || uid(); const body = {...row}; delete body.id; rows.push({path:c+"/"+id, data:JSON.parse(JSON.stringify(body))}); const list = S[c]; const i = list.findIndex(x=>x.id===id); if (i>=0) list[i] = {...body, id}; else list.push({...body, id}); }
     await db.bulkSet(rows); render(); return; }
-  for (const c of ["orders","expenses","wastage","customers","filings"]) for (const row of (d[c]||[])) await saveRow(c, row); render(); }
+  for (const c of ["orders","expenses","wastage","customers","filings","weborders"]) for (const row of (d[c]||[])) await saveRow(c, row); render(); }
 function knownCustomers(){ const map = new Map(); S.customers.forEach(c=>{ if(c.name) map.set(c.name.toLowerCase(), {name:c.name, phone:c.phone||""}); });
   [...S.orders].sort((a,b)=>(a.date||"")<(b.date||"")?-1:1).forEach(o=>{ if(!o.customer) return; const k=o.customer.toLowerCase(); const e=map.get(k); if(!e) map.set(k,{name:o.customer, phone:o.phone||""}); else if(o.phone && !e.phone) e.phone=o.phone; });
   return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name)); }
@@ -915,6 +930,17 @@ function openMenuForm(){
   $("#mfrm").addEventListener("submit", e => { e.preventDefault(); submit(); });
   $("#mfrm").addEventListener("keydown", e => { if (e.key==="Enter" && e.target.tagName!=="TEXTAREA"){ e.preventDefault(); submit(); } });
 }
+
+// ---------------- web orders (dropped in by the website) ----------------
+const normName = s => String(s||"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9\u0600-\u06FF]+/g,"");  // "Za’atar & EVOO" and "Zaatar and EVOO" meet in the middle
+function webToOrder(w){ const byName = new Map(S.menu.map(m=>[normName(m.name), m.name]));
+  const items = (w.items||[]).map(i=>{ const name = byName.get(normName(i.name)); const qty = N(i.qty)||1; return name ? {item:name, qty} : {custom:true, item:"", name:i.name||"Item", price:N(i.unit_price), qty}; });
+  const notes = [`Web order ${w.ref||w.id}`, w.area? "Area: "+w.area : "", w.notes||""].filter(Boolean).join(" · ");
+  return {date: w.date || today(), customer: String((w.customer||{}).name||"").trim(), phone: String((w.customer||{}).phone||"").trim(), items: items.length? items : [{item:"",qty:1}], delivery: w.fulfilment!=="pickup", status:"Unpaid", account:(S.settings.accounts[0]||{}).name||"", notes, webRef: w.id}; }
+async function markWebOrder(ref, status, extra){ const idx = (S.weborders||[]).findIndex(x=>x.id===ref); if (idx<0) return; const body = {...S.weborders[idx], ...(extra||{}), status, handledAt: new Date().toISOString(), handledBy: user||""}; delete body.id;
+  S.weborders[idx] = {...body, id:ref};
+  if (!db){ try{ localStorage.setItem("fofo.weborders", JSON.stringify(S.weborders)); }catch(e){} return render(); }
+  try { await db.doc("weborders/"+ref).set(JSON.parse(JSON.stringify(body))); } catch(e){ toast("Could not update the web order: "+(e.message||e.code), true); } render(); }
 
 function openForm(coll, row){
   const r = JSON.parse(JSON.stringify(row)); const accts = [...S.settings.accounts.map(a=>a.name), OWNER]; const known = coll==="orders" ? knownCustomers() : []; const F = (l, html, wide) => `<label class="${wide?"wide":""}">${l}${html}</label>`;
@@ -981,7 +1007,7 @@ function openForm(coll, row){
     if (coll==="filings"){ if (!r.type){ toast("Pick a type", true); return; } const bill = r.billData, removed = r.billRemoved; delete r.billData; delete r.billRemoved; r.id = r.id || uid(); saveBill(r.id, bill, removed);
       if (r.logExp && N(r.amount) > 0 && r.status!=="Due"){ const cat = /zakat/i.test(r.type) ? "Zakat paid to ZATCA" : "VAT paid to / refunded by ZATCA"; const ex = r.expId ? S.expenses.find(x=>x.id===r.expId) : null;
         const row = {...(ex||{}), id: ex? ex.id : uid(), date:r.date, party:"ZATCA", cat, out:N(r.amount), in:"", account:r.account, notes:[r.type, r.period, r.ref].filter(Boolean).join(" · "), filingId:r.id}; r.expId = row.id; saveRow("expenses", row); }
-      delete r.logExp; } saveRow(coll, r); if (coll==="orders") rememberCustomer(r); });
+      delete r.logExp; } if (coll==="orders" && !r.id) r.id = uid(); saveRow(coll, r); if (coll==="orders") rememberCustomer(r); if (coll==="orders" && r.webRef) markWebOrder(r.webRef, "accepted", {orderId: r.id, receiptNo: r.receiptNo||""}); });
 }
 try { S.plan = JSON.parse(localStorage.getItem("fofo.plan")||"null") || undefined; } catch(e){}
 

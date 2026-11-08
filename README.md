@@ -12,6 +12,7 @@ Everyone who signs in works on the **same live books**: a change saved on one ph
 | `store.js` | Sign-in screen and the shared store. Talks to Supabase (login + Postgres + realtime) and gives the page a tiny document API |
 | `config.js` | Your Supabase URL and public key, plus `ALLOW_SIGNUP` and the business name |
 | `supabase/schema.sql` | The one table everything is stored in, its access rules and the realtime switch |
+| `supabase/web-orders.sql` | The one extra rule that lets the website drop web orders into that table |
 | `assets/vendor/` | supabase-js, SheetJS (Excel), jsPDF and qrcodejs, vendored so nothing loads from a CDN |
 | `.github/workflows/pages.yml` | Publishes the site to GitHub Pages on every push to `main` |
 
@@ -34,6 +35,12 @@ By default anyone who finds the page can create an account and then edit the boo
 - Add people yourself under **Authentication → Users → Invite user**. They get an email, set a password, and sign in.
 
 Email confirmation is on by default in Supabase. If you'd rather people sign in immediately after creating an account, turn **Confirm email** off on the same Email provider page.
+
+## Web orders from the website
+
+The FoFocaccia website hands each order to this dashboard the moment a customer taps "Send order on WhatsApp": it writes `weborders/<reference>` into the same `docs` table, and the **🌐 Web orders** tab shows it live with the items, prices, customer, delivery or pickup, date and notes. **Accept → new order** opens the normal order form prefilled (menu items matched by name, anything unknown as a custom item), so receipts, VAT and customer memory work as usual; the web order is then marked accepted with the receipt number. **Dismiss** keeps it under Handled. The WhatsApp message remains the order; this is your copy of it.
+
+Setup, once: run `supabase/web-orders.sql` in Supabase → SQL editor. It adds one rule: anonymous visitors (the website, using the public key) may *insert* a row whose path starts with `weborders/FF-`, a small JSON object, and nothing else. They cannot read, change or delete anything. Remove the rule to switch the hand-off off.
 
 ## Publish it
 
