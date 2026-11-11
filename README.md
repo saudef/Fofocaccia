@@ -40,6 +40,8 @@ Email confirmation is on by default in Supabase. If you'd rather people sign in 
 
 The FoFocaccia website hands each order to this dashboard the moment a customer taps "Send order on WhatsApp": it writes `weborders/<reference>` into the same `docs` table, and the **🌐 Web orders** tab shows it live with the items, prices, customer, delivery or pickup, date and notes. **Accept → new order** opens the normal order form prefilled (menu items matched by name, anything unknown as a custom item), so receipts, VAT and customer memory work as usual; the web order is then marked accepted with the receipt number. **Dismiss** keeps it under Handled. The WhatsApp message remains the order; this is your copy of it.
 
+A web order can carry the customer's National Address (short address); the card shows it with a map link, and Accept copies it into the order notes. The optional lookup that turns the code into a full address for the website lives in `supabase/functions/national-address/` (needs a key from api.address.gov.sa; see the website repository's `integration/national-address/README.md`).
+
 Setup, once: run `supabase/web-orders.sql` in Supabase → SQL editor. It adds one rule: anonymous visitors (the website, using the public key) may *insert* a row whose path starts with `weborders/FF-`, a small JSON object, and nothing else. They cannot read, change or delete anything. Remove the rule to switch the hand-off off.
 
 ## Publish it
